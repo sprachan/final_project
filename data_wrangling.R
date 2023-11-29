@@ -17,6 +17,20 @@ data.2022 <- read.csv('./data/petrel_data2022.csv') |>
 sex.data <- read.csv('./data/petrel_sex.csv') |> 
             rename('band' = Band, 'sex' = Sex)
 
+# 2023 physical characteristic data
+phys_data <- read.csv('./data/data_2023.csv') |>
+             select(Band, Burrow, Mass..g., Wing.Chord..mm., Tarsus.Length..mm.,
+                    Known.Sex, PCR.Sex,
+                    Blood.for.PCR., Feathers.Collected.) |>
+             rename(weight = Mass..g.,
+                    wing_length = Wing.Chord..mm.,
+                    tarsus_length = Tarsus.Length..mm.,
+                    prev_sex = Known.Sex,
+                    pcr_sex = PCR.Sex,
+                    blood = Blood.for.PCR.,
+                    feathers = Feathers.Collected.,
+                    band = Band)
+
 #====== Make Column names and types consistent ============================
 
 # Make sure bands are characters, not integers!
@@ -148,6 +162,7 @@ individuals$est_age <- as.integer(individuals$est_age)
 #===== Get sexes =====================================================
 #add sexes to individuals data frame
 individuals <- left_join(individuals, sex.data, by=join_by(band))
+individuals <- left_join(individuals, phys_data, by = join_by(band))
 
 
 #===== Make a by-individual behavioral data frame ====================
