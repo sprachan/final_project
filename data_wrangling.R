@@ -1,3 +1,6 @@
+#====== Load Packages
+library(dplyr)
+
 #====== Reading in Data =================================================
 # Behavioral data (collected 2023)
 behav.data <- read.csv('./data/behav_data.csv')
@@ -8,7 +11,7 @@ historic.data <- read.csv('./data/historic_data.csv') |>
 # Read in 2022 data, only take columns I need; rename columns for consistency
 data.2022 <- read.csv('./data/petrel_data2022.csv') |>
              select(Band, ATY.or.Chick, Burrow) |> 
-             rename('band'=Band)
+             rename('band'= Band)
 
 # Rename columns for consistency
 sex.data <- read.csv('./data/petrel_sex.csv') |> 
