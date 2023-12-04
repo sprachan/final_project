@@ -4,6 +4,7 @@ data {
   int N;
   
   // individual ID and physical characteristics
+  int num_observations[N];
   int band[N];
   real tarsus[N];
   real weight[N];
@@ -26,20 +27,22 @@ data {
 // The parameters accepted by the model. Our model
 // accepts two parameters 'mu' and 'sigma'.
 parameters {
-  real p;
+  real <lower=0, upper=1> p[5];
 }
 
 // The model to be estimated. We model the output
 // 'y' to be normally distributed with mean 'mu'
 // and standard deviation 'sigma'.
 model {
-  p ~ beta(0, 1);
+  p ~ beta(1, 1);
   
   for(i in 1:N){
-    passive[i] ~ bernoulli(p);
-    //bite[i] ~ bernoulli(p);
+      passive[i] ~ binomial(num_observations[i], p[1]);
+      bite[i] ~ binomial(num_observations[i], p[2]);
+      run_hide[i] ~ binomial(num_observations[i], p[3]);
+      regurgitate[i] ~ binomial(num_observations[i], p[4]);
+      vocalize[i] ~ binomial(num_observations[i], p[5]);
+    
   }
-
-  
 }
 
