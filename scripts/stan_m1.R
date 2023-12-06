@@ -25,7 +25,7 @@ model_obj <- list(N = length(band),
                   regurgitate = regurgitate,
                   vocalize = vocalize
 )
-model = stan_model('./scripts/m0.stan')
+model = stan_model('./scripts/m1.stan')
 fit = sampling(model, model_obj, iter = 10000, chains = 1)
 params = extract(fit)
 

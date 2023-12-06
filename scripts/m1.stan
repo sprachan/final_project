@@ -24,25 +24,44 @@ data {
   
 }
 
-// The parameters accepted by the model. Our model
-// accepts two parameters 'mu' and 'sigma'.
+// The parameters accepted by the model: 
+// beta_wt, beta_TL, beta_WL, beta_0
 parameters {
-  real <lower=0, upper=1> p[5];
+  // m1A: physical characteristic effect on p is the SAME for all behaviors
+ real coeff_wt;
+ real coeff_tl;
+ real coeff_wl;
+ real intercept;
+ vector p[6];
 }
 
 // The model to be estimated. We model the output
 // 'y' to be normally distributed with mean 'mu'
 // and standard deviation 'sigma'.
 model {
-  p ~ beta(1, 1);
+  coeff_wt ~ normal(0, 10);
+  coeff_tl ~ normal(0, 10);
+  coeff_wl ~ normal(0, 10);
+  intercept ~ normal(0, 10);
   
+  // number of behaviors = 6
+
+  // for each individual, for each behavior, generate a p.
   for(i in 1:N){
-      passive[i] ~ binomial(num_observations[i], p[1]);
-      bite[i] ~ binomial(num_observations[i], p[2]);
-      run_hide[i] ~ binomial(num_observations[i], p[3]);
-      regurgitate[i] ~ binomial(num_observations[i], p[4]);
-      vocalize[i] ~ binomial(num_observations[i], p[5]);
+    
+      for(j in 1:6){
+        logit_arg = exp(coeff_wt*weight[i]+coeff_tl*tarsus[i]+coeff_wl*wing[i]+intercept);
+        p[j] = logit_arg/(1+logit_arg);
     
   }
-}
+    passive[i] ~ binomial(num_observations[i], p[1]);
+    bite[i] ~ binomial(num_observations[i], p[2]);
+    run_hide[i] ~ binomial(num_observations[i], p[3]);
+    regurgitate[i] ~ binomial(num_observations[i], p[4]);
+    vocalize[i] ~ binomial(num_observations[i], p[5]);
+    kick[i] ~ binomial(num_observations[i], p[6]);
+  }
+  
+
+
 
