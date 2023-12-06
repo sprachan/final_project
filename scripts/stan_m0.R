@@ -31,8 +31,19 @@ params = extract(fit)
 
 # visualize results
 p <- params$p
-hist(p[,1], main = 'passive', n = 100)
-hist(p[,2], main = 'bite', n = 100)
-hist(p[,3], main = 'run_hide', n = 100)
-hist(p[,4], main = 'regurgitate', n = 100)
-hist(p[,5], main = 'vocalize', n = 100)
+p <- list('passive' = p[,1], 
+          'bite' = p[,2], 
+          'run_hide' = p[,3],
+          'regurgitate' = p[,4],
+          'vocalize' = p[,5])
+param_df <- enframe(p, name = 'behavior', value = 'model_p') |>
+            unnest_longer(model_p)
+
+ggplot(param_df)+geom_histogram(aes(x = model_p), 
+                                bins = 100,
+                                fill = 'lightblue',
+                                color = 'black',
+                                linewidth = 0.25)+
+                 facet_wrap(facets = vars(behavior),
+                            nrow = 5)+
+                 xlim(c(0, 1))
