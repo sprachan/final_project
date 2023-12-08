@@ -1,6 +1,8 @@
 library(tidyverse)
 library(rstan)
 
+# TODO: NEED TO CHANGE DATASET
+
 # Load Data
 load('./data/behav_ind_raw.RData')
 load('./data/behav_ind_summarized.RData')
@@ -10,7 +12,8 @@ behav_ind_summarized <- mutate(behav_ind_summ,
                                !is.na(tarsus_length))
 attach(behav_ind_summarized)
 
-model_obj <- list(N = length(band),
+model_obj <- list(B = 6,
+                  N = length(band),
                   num_observations = as.integer(num_observations),
                   band = as.numeric(band),
                   tarsus = as.numeric(tarsus_length),
@@ -23,7 +26,8 @@ model_obj <- list(N = length(band),
                   bite = bite,
                   run_hide = run_hide,
                   regurgitate = regurgitate,
-                  vocalize = vocalize
+                  vocalize = vocalize,
+                  kick=kick
 )
 model = stan_model('./scripts/m1.stan')
 fit = sampling(model, model_obj, iter = 10000, chains = 1)
@@ -35,7 +39,8 @@ p <- list('passive' = p[,1],
           'bite' = p[,2], 
           'run_hide' = p[,3],
           'regurgitate' = p[,4],
-          'vocalize' = p[,5])
+          'vocalize' = p[,5],
+          'kick' = p[,6])
 param_df <- enframe(p, name = 'behavior', value = 'model_p') |>
             unnest_longer(model_p)
 
