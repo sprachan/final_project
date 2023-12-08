@@ -21,13 +21,14 @@ data {
   int run_hide[N];
   int regurgitate[N];
   int vocalize[N];
+  int kick[N];
   
 }
 
 // The parameters accepted by the model. Our model
 // accepts two parameters 'mu' and 'sigma'.
 parameters {
-  real <lower=0, upper=1> p[5];
+  real <lower=0, upper=1> p[6];
 }
 
 // The model to be estimated. We model the output
@@ -42,6 +43,7 @@ model {
       run_hide[i] ~ binomial(num_observations[i], p[3]);
       regurgitate[i] ~ binomial(num_observations[i], p[4]);
       vocalize[i] ~ binomial(num_observations[i], p[5]);
+      kick[i] ~ binomial(num_observations[i], p[6]);
     
   }
 }
