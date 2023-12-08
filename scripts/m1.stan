@@ -1,7 +1,8 @@
 // The input data is a vector 'y' of length 'N'.
 data {
   // data size
-  int N;
+  int N; //number of observations
+  int B; //number of behaviors
   
   // individual ID and physical characteristics
   int num_observations[N];
@@ -21,6 +22,7 @@ data {
   int run_hide[N];
   int regurgitate[N];
   int vocalize[N];
+  int kick[N];
   
 }
 
@@ -28,11 +30,10 @@ data {
 // beta_wt, beta_TL, beta_WL, beta_0
 parameters {
   
- real coeff_wt;
- real coeff_tl;
- real coeff_wl;
- real intercept;
- vector p[6];
+ real coeff_wt[B];
+ real coeff_tl[B];
+ real coeff_wl[B];
+ real beta0[B];
 }
 
 // The model to be estimated. We model the output
@@ -40,27 +41,22 @@ parameters {
 // and standard deviation 'sigma'.
 model {
   coeff_wt ~ normal(0, 10);
-  coeff_tl ~ normal(0, 10);
+  coeff_tl ~ normal(0, 10); 
   coeff_wl ~ normal(0, 10);
-  intercept ~ normal(0, 10);
+  beta0 ~ normal(0, 10);
   
-  // number of behaviors = 6
 
   // for each individual, for each behavior, generate a p.
   for(i in 1:N){
-    
-      for(j in 1:6){
-        logit_arg = exp(coeff_wt*weight[i]+coeff_tl*tarsus[i]+coeff_wl*wing[i]+intercept);
-        p[j] = logit_arg/(1+logit_arg);
-    
+    bite[i] ~ bernoulli_logit(coeff_wt[1]*weight[i]+coeff_tl[1]*tarsus[i]+coeff_wl[1]*wing[i]+beta0[1])
+    run_hide[i] ~ bernoulli_logit(coeff_wt[2]*weight[i]+coeff_tl[2]*tarsus[i]+coeff_wl[2]*wing[i]+beta0[2])
+    regurgitate[i] ~ bernoulli_logit(coeff_wt[3]*weight[i]+coeff_tl[3]*tarsus[i]+coeff_wl[3]*wing[i]+beta0[3])
+    vocalize[i] ~ bernoulli_logit(coeff_wt[4]*weight[i]+coeff_tl[4]*tarsus[i]+coeff_wl[4]*wing[i]+beta0[4])
+    kick[i] ~ bernoulli_logit(coeff_wt[5]*weight[i]+coeff_tl[5]*tarsus[i]+coeff_wl[5]*wing[i]+beta0[5])
   }
-    passive[i] ~ binomial(num_observations[i], p[1]);
-    bite[i] ~ binomial(num_observations[i], p[2]);
-    run_hide[i] ~ binomial(num_observations[i], p[3]);
-    regurgitate[i] ~ binomial(num_observations[i], p[4]);
-    vocalize[i] ~ binomial(num_observations[i], p[5]);
-    kick[i] ~ binomial(num_observations[i], p[6]);
-  }
+}
+
+
   
 
 
