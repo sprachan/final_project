@@ -27,7 +27,7 @@ data {
 // The parameters accepted by the model: 
 // beta_wt, beta_TL, beta_WL, beta_0
 parameters {
-  // m1A: physical characteristic effect on p is the SAME for all behaviors
+  
  real coeff_wt;
  real coeff_tl;
  real coeff_wl;

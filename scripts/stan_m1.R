@@ -27,7 +27,7 @@ model_obj <- list(N = length(band),
 )
 model = stan_model('./scripts/m1.stan')
 fit = sampling(model, model_obj, iter = 10000, chains = 1)
-params = extract(fit)
+params = rstan::extract(fit)
 
 # visualize results
 p <- params$p
