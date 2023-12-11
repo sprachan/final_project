@@ -1,9 +1,34 @@
 library(tidyverse)
 library(rstan)
 
-# TODO: NEED TO CHANGE DATASET
+# Functions --------------------------------------------------------------------
+make_param_df <- function(list_in){
+  temp <- list('bite' = list_in[,1], 
+               'run_hide' = list_in[,2],
+               'regurgitate' = list_in[,3],
+               'vocalize' = list_in[,4],
+               'kick' = list_in[,5])
+  out <- enframe(temp, name = 'behavior', value = 'modelled_value') |>
+         unnest_longer(modelled_value)
+  return(out)
+}
 
-# Load Data
+plot_param <- function(list_in, plot_title = NULL){
+  temp <- make_param_df(list_in)
+  p <- ggplot(temp)+
+       geom_histogram(aes(x = modelled_value),
+                          bins = 100,
+                          fill = 'lightblue',
+                          color = 'black',
+                          linewidth = 0.25)+
+       facet_wrap(facets = vars(behavior),
+                  nrow = 5)+
+       labs(title = plot_title, x = 'Modelled Value', y = 'Count')
+  return(p)
+}
+
+
+# Load Data --------------------------------------------------------------------
 load('./data/behav_ind_raw.RData')
 load('./data/behav_ind_summarized.RData')
 behav_ind_raw <- mutate(behav_ind_raw,
@@ -11,6 +36,7 @@ behav_ind_raw <- mutate(behav_ind_raw,
 behav_ind_raw <- na.omit(behav_ind_raw)
 attach(behav_ind_raw)
 
+# STAN Time --------------------------------------------------------------------
 model_obj <- list(B = 5,
                   N = length(band),
                   band = as.numeric(band),
@@ -31,24 +57,19 @@ model = stan_model('./scripts/m1.stan')
 fit = sampling(model, model_obj, iter = 10000, chains = 1)
 params = rstan::extract(fit)
 
-param_df <- cbind(params$coeff_wt, params$coeff_tl, params$coeff_wl) # working on this
-colnames(param_df) <- c('parameter',
-                        'bite', 
-                        'run_hide', 
-                        'regurgitate',
-                        'vocalize',
-                        'kick')
+# Plot -------------------------------------------------------------------------
+p_beta_wt <- plot_param(params$coeff_wt, 'Weight Coefficient')
+p_beta_tl <- plot_param(params$coeff_tl, 'Tarsus Coefficient')+xlim(c(-2, 2))
+p_beta_wl <- plot_param(params$coeff_wl, 'Wing Coefficient')+xlim(c(-0.4, 0.4))
+
+pdf(file = './plots/m1_param_plots.pdf')
+p_beta_wt
+p_beta_tl
+p_beta_wl
+dev.off()
 
 
-
-param_df <- enframe(params$coeff_wt, name = 'beta_wt', value = 'beta_wt') |>
-            unnest_longer(model_p)
-
-ggplot(param_df)+geom_histogram(aes(x = model_p), 
-                                bins = 100,
-                                fill = 'lightblue',
-                                color = 'black',
-                                linewidth = 0.25)+
-                 facet_wrap(facets = vars(behavior),
-                            nrow = 5)+
-                 xlim(c(0, 1))
+## EXPERIMENTAL (trying to streamline the plot param thing instead of
+#> having multiple lines of code)
+#plots <- map(params_only, ~plot_param(list_in = .x, plot_title = ~name(.x))) 
+#params_only <- params[which(names(params) != 'lp__')]
