@@ -58,18 +58,17 @@ fit = sampling(model, model_obj, iter = 10000, chains = 1)
 params = rstan::extract(fit)
 
 # Plot -------------------------------------------------------------------------
-p_beta_wt <- plot_param(params$coeff_wt, 'Weight Coefficient')
-p_beta_tl <- plot_param(params$coeff_tl, 'Tarsus Coefficient')+xlim(c(-2, 2))
-p_beta_wl <- plot_param(params$coeff_wl, 'Wing Coefficient')+xlim(c(-0.4, 0.4))
+params_only <- params[which(names(params) != 'lp__')]
+plots <- imap(params_only, plot_param) 
+plots$coeff_tl <- plots$coeff_tl+xlim(c(-2, 2))
+plots$coeff_wl <- plots$coeff_wl+xlim(c(-0.4, 0.4))
 
 pdf(file = './plots/m1_param_plots.pdf')
-p_beta_wt
-p_beta_tl
-p_beta_wl
+plots
 dev.off()
 
+# Confidence Intervals on the parameters ---------------------------------------
 
-## EXPERIMENTAL (trying to streamline the plot param thing instead of
-#> having multiple lines of code)
-#plots <- map(params_only, ~plot_param(list_in = .x, plot_title = ~name(.x))) 
-#params_only <- params[which(names(params) != 'lp__')]
+
+
+
