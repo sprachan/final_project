@@ -1,27 +1,23 @@
 library(tidyverse)
 library(rstan)
 
-# TODO: NEED TO CHANGE DATASET
-
 # Load Data
 load('./data/behav_ind_raw.RData')
 load('./data/behav_ind_summarized.RData')
-behav_ind_summarized <- mutate(behav_ind_summ,
-                               run_hide = run_and_hide + hide) |>
-  filter(!is.na(years),
-         !is.na(tarsus_length))
-attach(behav_ind_summarized)
+behav_ind_raw <- mutate(behav_ind_raw,
+                        run_hide = run_and_hide + hide)
+behav_ind_raw <- na.omit(behav_ind_raw)
+attach(behav_ind_raw)
 
 model_obj <- list(B = 3,
                   N = length(band),
-                  num_observations = as.integer(num_observations),
                   band = as.numeric(band),
                   tarsus = as.numeric(tarsus_length),
                   weight = as.numeric(weight),
                   wing = as.numeric(wing_length),
                   sex = as.integer(numeric_sex),
                   experience = as.integer(years),
-                  exttime = as.numeric(avg_ext_time),
+                  exttime = as.numeric(ext_time),
                   passive = passive,
                   bite = bite,
                   run_hide = run_hide,
@@ -29,19 +25,19 @@ model_obj <- list(B = 3,
                   vocalize = vocalize,
                   kick=kick
 )
-model = stan_model('./scripts/m1.stan')
+model = stan_model('./scripts/m2.stan')
 fit = sampling(model, model_obj, iter = 10000, chains = 1)
 params = rstan::extract(fit)
 
-# visualize results
-p <- params$p
-p <- list('passive' = p[,1], 
-          'bite' = p[,2], 
-          'run_hide' = p[,3],
-          'regurgitate' = p[,4],
-          'vocalize' = p[,5],
-          'kick' = p[,6])
-param_df <- enframe(p, name = 'behavior', value = 'model_p') |>
+param_df <- cbind(params$coeff_wt, params$coeff_tl, params$coeff_wl) # working on this
+colnames(param_df) <- c('parameter',
+                        'bite', 
+                        'run_hide', 
+                        'regurgitate',
+                        'vocalize',
+                        'kick')
+
+param_df <- enframe(params$coeff_wt, name = 'beta_wt', value = 'beta_wt') |>
   unnest_longer(model_p)
 
 ggplot(param_df)+geom_histogram(aes(x = model_p), 
