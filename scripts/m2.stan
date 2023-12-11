@@ -2,7 +2,7 @@
 data {
   // data size
   int N; //number of observations
-  int B; //number of behaviors we are modeling
+  int B; //number of behaviors we are modeling (NB: DIFFERENT FROM M1)
   
   // individual ID and physical characteristics
   // int num_observations[N];
