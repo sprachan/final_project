@@ -23,6 +23,9 @@ plot_param <- function(list_in, plot_title = NULL){
                           linewidth = 0.25)+
        facet_wrap(facets = vars(behavior),
                   nrow = 5)+
+       geom_vline(aes(xintercept = 0),
+                  linetype = 'dashed',
+                  col = '#dd3040')+
        labs(title = plot_title, x = 'Value', y = 'Count')
   return(p)
 }
@@ -53,7 +56,7 @@ model_obj <- list(B = 5,
                   vocalize = vocalize,
                   kick=kick
 )
-wt_model = stan_model('./scripts/m1_wl.stan')
+wl_model = stan_model('./scripts/m1_wl.stan')
 fit = sampling(wl_model, model_obj, iter = 10000, chains = 1)
 params = rstan::extract(fit)
 
