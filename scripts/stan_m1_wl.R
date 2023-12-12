@@ -53,53 +53,90 @@ model_obj <- list(B = 5,
                   vocalize = vocalize,
                   kick=kick
 )
-wt_model = stan_model('./scripts/m1_wt.stan')
-fit = sampling(wt_model, model_obj, iter = 10000, chains = 1)
+wt_model = stan_model('./scripts/m1_wl.stan')
+fit = sampling(wl_model, model_obj, iter = 10000, chains = 1)
 params = rstan::extract(fit)
 
 # Plot -------------------------------------------------------------------------
-# params_only <- params[which(!(names(params) %in% c('lp__', 'p')))] # coefficients only, no log prior
-# plots <- imap(params_only, \(x, idx) plot_param(list_in = x, plot_title = idx))
-# 
-# # adjust x limits so 0 is centered
-# plots$coeff_wt <- plots$coeff_wt+xlim(c(-0.75, 0.75))
-# plots$coeff_tl <- plots$coeff_tl+xlim(c(-2, 2)) 
-# plots$coeff_wl <- plots$coeff_wl+xlim(c(-0.4, 0.4))
-# 
-# # Commented out for now because I have already plotted these guys
-# pdf(file = './plots/m1_param_plots.pdf')
-# plots
-# dev.off()
+params_only <- params[which(!(names(params) %in% c('lp__', 'p')))] # coefficients only, no log prior
+plots <- imap(params_only, \(x, idx) plot_param(list_in = x, plot_title = idx))
+
+pdf(file = './plots/m1/m1_wl_params.pdf')
+plots
+dev.off()
 
 # Confidence Intervals on the Parameters ---------------------------------------
-# # 90% CI
-# ci90_df <- map(params_only, make_param_df) |>
-#   map(\(x) group_by(x, behavior)) |>
-#   map(\(x) summarize(x, 
-#                      lower = quantile(value, 0.05),
-#                      upper = quantile(value, 0.95)))
-# lapply(ci90_df, print)
-# # all CI's contain 0 except the WL coefficient with kick
-# 
-# # 95% CI
-# ci95_df <- map(params_only, make_param_df) |>
-#            map(\(x) group_by(x, behavior)) |>
-#            map(\(x) summarize(x, 
-#                               lower = quantile(value, 0.025),
-#                               upper = quantile(value, 0.975)))
-# lapply(ci95_df, print)
-# # again, all CI's contain 0 except the WL coefficient with kick 
-# 
-# # 99% CI
-# ci99_df <- map(params_only, make_param_df) |>
-#            map(\(x) group_by(x, behavior)) |>
-#            map(\(x) summarize(x, 
-#                               lower = quantile(value, 0.005),
-#                               upper = quantile(value, 0.995)))
-# 
-# lapply(ci99_df, print)
-# lose significance with kick/WL coefficient 
+# 90% CI
+ci90_df <- map(params_only, make_param_df) |>
+  map(\(x) group_by(x, behavior)) |>
+  map(\(x) summarize(x,
+                     lower = quantile(value, 0.05),
+                     upper = quantile(value, 0.95)))
+lapply(ci90_df, print)
+
+
+# 95% CI
+ci95_df <- map(params_only, make_param_df) |>
+           map(\(x) group_by(x, behavior)) |>
+           map(\(x) summarize(x,
+                              lower = quantile(value, 0.025),
+                              upper = quantile(value, 0.975)))
+lapply(ci95_df, print)
+
+
+# 99% CI
+ci99_df <- map(params_only, make_param_df) |>
+           map(\(x) group_by(x, behavior)) |>
+           map(\(x) summarize(x,
+                              lower = quantile(value, 0.005),
+                              upper = quantile(value, 0.995)))
+
+lapply(ci99_df, print)
+
 
 # Look at generated ps ---------------------------------------------------------
-## WANT: slice the 3-dimensional parameter p output into 5 5000x174 matrices
-#bite_p <- params$p[, , 1] # SOMETHING IS WRONG BECAUSE WE HAVE P'S OUTSIDE [0,1]
+t <- dim(params$p)[1]
+N <- dim(params$p)[2]
+B <- dim(params$p)[3]
+behavs <- model_obj[11:15]
+mse <- matrix(NA, nrow = N, ncol = B)
+
+for(n in 1:N){
+  for(b in 1:B){
+    x <- behavs[[b]][n]
+    prop <- params$p[,n,b]
+    mse[n, b] <- (1/t)*sum((prop-x)^2)
+  }
+}
+
+pdf(file = './plots/m1/m1_wl_mse.pdf')
+plot(-log10(mse[,1]), 
+     type = 'h',
+     main = 'Bite',
+     xlab = 'Individual',
+     ylab = '-log10(MSE)')
+
+plot(-log10(mse[,2]), 
+     type = 'h',
+     main = 'Run-Hide',
+     xlab = 'Individual',
+     ylab = '-log10(MSE)')
+
+plot(-log10(mse[,3]),
+     type = 'h',
+     main = 'Regurgitate',
+     xlab = 'Individual',
+     ylab = '-log10(MSE)')
+
+plot(-log10(mse[,4]),
+     main = 'Vocalize',
+     type = 'h',
+     xlab = 'Individual',
+     ylab = '-log10(MSE)')
+
+plot(-log10(mse[,5]),
+     main = 'Kick',
+     type = 'h',
+     xlab = 'Individual',
+     ylab = '-log10(MSE)')
+dev.off()
