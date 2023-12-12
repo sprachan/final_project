@@ -49,8 +49,8 @@ model_obj <- list(B = 3,
                   vocalize = vocalize,
                   kick=kick
 )
-model = stan_model('./scripts/m2.stan')
-model.a = stan_model('./scripts/m2a.stan')
+model = stan_model('./scripts/m2-logit.stan')
+#model.a = stan_model('./scripts/m2a.stan')
 fit = sampling(model, model_obj, iter = 10000, chains = 1)
 params = rstan::extract(fit)
 
