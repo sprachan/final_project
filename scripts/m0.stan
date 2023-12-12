@@ -38,11 +38,11 @@ model {
   p ~ beta(1, 1);
   
   for(i in 1:N){
-      bite[i] ~ binomial(num_observations[i], p[1]);
-      run_hide[i] ~ binomial(num_observations[i], p[2]);
-      regurgitate[i] ~ binomial(num_observations[i], p[3]);
-      vocalize[i] ~ binomial(num_observations[i], p[4]);
-      kick[i] ~ binomial(num_observations[i], p[5]);
+      bite[i] ~ bernoulli(p[1]);
+      run_hide[i] ~ bernoulli(p[2]);
+      regurgitate[i] ~ bernoulli(p[3]);
+      vocalize[i] ~ bernoulli(p[4]);
+      kick[i] ~ bernoulli(p[5]);
     
   }
 }

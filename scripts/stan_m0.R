@@ -1,15 +1,24 @@
 library(tidyverse)
 library(rstan)
 
+# # Load Data
+# load('./data/behav_ind_raw.RData')
+# load('./data/behav_ind_summarized.RData')
+# behav_ind_summarized <- mutate(behav_ind_summ,
+#                                run_hide = run_and_hide + hide) |>
+#                         filter(!is.na(years),
+#                                !is.na(tarsus_length),
+#                                !is.na(weight))
+# attach(behav_ind_summarized)
+
+
 # Load Data
 load('./data/behav_ind_raw.RData')
 load('./data/behav_ind_summarized.RData')
-behav_ind_summarized <- mutate(behav_ind_summ,
-                               run_hide = run_and_hide + hide) |>
-                        filter(!is.na(years),
-                               !is.na(tarsus_length),
-                               !is.na(weight))
-attach(behav_ind_summarized)
+behav_ind_raw <- mutate(behav_ind_raw,
+                        run_hide = run_and_hide + hide)
+behav_ind_raw <- na.omit(behav_ind_raw)
+attach(behav_ind_raw)
 
 model_obj <- list(N = length(band),
                   #num_observations = as.integer(num_observations),
