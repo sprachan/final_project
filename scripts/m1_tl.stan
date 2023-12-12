@@ -56,7 +56,7 @@ generated quantities{
   matrix[N,B] p;
   for(n in 1:N){
     for(b in 1:B){
-      p[n,b] = exp(coeff_wt[b]*weight[n]+coeff_tl[b]*tarsus[n]+coeff_wl[b]*wing[n]+beta0[b])/(1-exp(coeff_wt[b]*weight[n]+coeff_tl[b]*tarsus[n]+coeff_wl[b]*wing[n]+beta0[b]));
+      p[n,b] = exp(coeff_wt[b]*weight[n]+coeff_tl[b]*tarsus[n]+coeff_wl[b]*wing[n]+beta0[b])/(1+exp(coeff_wt[b]*weight[n]+coeff_tl[b]*tarsus[n]+coeff_wl[b]*wing[n]+beta0[b]));
     }
   }
 }

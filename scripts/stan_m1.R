@@ -62,6 +62,7 @@ params_only <- params[which(!(names(params) %in% c('lp__', 'p')))] # coefficient
 plots <- imap(params_only, \(x, idx) plot_param(list_in = x, plot_title = idx))
 
 # adjust x limits so 0 is centered
+plots$coeff_wt <- plots$coeff_wt+xlim(c(-0.75, 0.75))
 plots$coeff_tl <- plots$coeff_tl+xlim(c(-2, 2)) 
 plots$coeff_wl <- plots$coeff_wl+xlim(c(-0.4, 0.4))
 
