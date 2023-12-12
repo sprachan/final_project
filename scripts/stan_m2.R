@@ -1,5 +1,6 @@
 library(tidyverse)
 library(rstan)
+library(patchwork)
 
 # Load Data
 load('./data/behav_ind_raw.RData')
@@ -8,6 +9,29 @@ behav_ind_raw <- mutate(behav_ind_raw,
                         run_hide = run_and_hide + hide)
 behav_ind_raw <- na.omit(behav_ind_raw)
 attach(behav_ind_raw)
+
+make_param_df <- function(list_in){
+  temp <- list('regurgitate' = list_in[,1], 
+               'vocalize' = list_in[,2],
+               'kick' = list_in[,3])
+  out <- enframe(temp, name = 'behavior', value = 'modelled_value') |>
+    unnest_longer(modelled_value)
+  return(out)
+}
+
+plot_param <- function(list_in, plot_title = NULL){
+  temp <- make_param_df(list_in)
+  p <- ggplot(temp)+
+    geom_histogram(aes(x = modelled_value),
+                   bins = 100,
+                   fill = 'lightblue',
+                   color = 'black',
+                   linewidth = 0.25)+
+    facet_wrap(facets = vars(behavior),
+               nrow = 5)+
+    labs(title = plot_title, x = 'Modelled Value', y=NULL)
+  return(p)
+}
 
 model_obj <- list(B = 3,
                   N = length(band),
@@ -26,25 +50,41 @@ model_obj <- list(B = 3,
                   kick=kick
 )
 model = stan_model('./scripts/m2.stan')
+model.a = stan_model('./scripts/m2a.stan')
 fit = sampling(model, model_obj, iter = 10000, chains = 1)
 params = rstan::extract(fit)
 
-param_df <- cbind(params$coeff_wt, params$coeff_tl, params$coeff_wl) # working on this
-colnames(param_df) <- c('parameter',
-                        'bite', 
-                        'run_hide', 
-                        'regurgitate',
-                        'vocalize',
-                        'kick')
+# Plot -------------------------------------------------------------------------
+beta_wt <- plot_param(params$coeff_wt, 'Weight')
+beta_tl <- plot_param(params$coeff_tl, 'Tarsus')
+beta_wl <- plot_param(params$coeff_wl, 'Wing')
+beta0 <- plot_param(params$beta0, 'Intercept')
+beta_wt_r <- plot_param(params$coeff_wt_r, 'Weight: RUN')
+beta_tl_r <- plot_param(params$coeff_tl_r, 'Tarsus: RUN')
+beta_wl_r <- plot_param(params$coeff_wl_r, 'Wing: RUN')
+beta0_r <- plot_param(params$beta0_r, 'Intercept: RUN')
+beta_wt_b <- plot_param(params$coeff_wt_b, 'Weight: BITE')
+beta_tl_b <- plot_param(params$coeff_tl_b, 'Tarsus: BITE')
+beta_wl_b <- plot_param(params$coeff_wl_b, 'Wing: BITE')
+beta0_b <- plot_param(params$beta0_b, 'Intercept: BITE')
+beta_wt_br <- plot_param(params$coeff_wt_br, 'Weight: BITE & RUN')
+beta_tl_br <- plot_param(params$coeff_tl_br, 'Tarsus: BITE & RUN')
+beta_wl_br <- plot_param(params$coeff_wl_br, 'Wing: BITE & RUN')
+beta0_br <- plot_param(params$beta0_br, 'Intercept: BITE & RUN')
 
-param_df <- enframe(params$coeff_wt, name = 'beta_wt', value = 'beta_wt') |>
-  unnest_longer(model_p)
+none <- beta0 | beta_wt | beta_tl | beta_wl
+bite <- beta0_b |beta_wt_b | beta_tl_b | beta_wl_b
+run <- beta0_r |beta_wt_r | beta_tl_r | beta_wl_r
+both <- beta0_br |beta_wt_br | beta_tl_br | beta_wl_br
 
-ggplot(param_df)+geom_histogram(aes(x = model_p), 
-                                bins = 100,
-                                fill = 'lightblue',
-                                color = 'black',
-                                linewidth = 0.25)+
-  facet_wrap(facets = vars(behavior),
-             nrow = 5)+
-  xlim(c(0, 1))
+none / bite / run / both
+
+#bf.10 <- bayes_factor( bridge_sampler(fit.1, silent = TRUE),bridge_sampler(fit.0, silent = TRUE))
+#print(bf.10)
+
+pdf(file = './plots/m2_param_plots.pdf')
+p_beta_wt
+p_beta_tl
+p_beta_wl
+dev.off()
+
