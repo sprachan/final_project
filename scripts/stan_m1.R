@@ -58,7 +58,7 @@ fit = sampling(model, model_obj, iter = 10000, chains = 1)
 params = rstan::extract(fit)
 
 # Plot -------------------------------------------------------------------------
-params_only <- params[which(names(params) != 'lp__')] # coefficients only, no log prior
+params_only <- params[which(!(names(params) %in% c('lp__', 'p')))] # coefficients only, no log prior
 plots <- imap(params_only, \(x, idx) plot_param(list_in = x, plot_title = idx))
 
 # adjust x limits so 0 is centered
@@ -98,3 +98,7 @@ ci99_df <- map(params_only, make_param_df) |>
 
 lapply(ci99_df, print)
 # lose significance with kick/WL coefficient 
+
+# Look at generated ps ---------------------------------------------------------
+## WANT: slice the 3-dimensional parameter p output into 5 5000x174 matrices
+bite_p <- params$p[, , 1] # SOMETHING IS WRONG BECAUSE WE HAVE P'S OUTSIDE [0,1]

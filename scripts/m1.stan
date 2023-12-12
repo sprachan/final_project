@@ -35,9 +35,7 @@ parameters {
  real beta0[B];
 }
 
-// The model to be estimated. We model the output
-// 'y' to be normally distributed with mean 'mu'
-// and standard deviation 'sigma'.
+// The model to be estimated. 
 model {
   coeff_wt ~ normal(0, 10);
   coeff_tl ~ normal(0, 10); 
@@ -53,7 +51,15 @@ model {
   }
 }
 
-
+generated quantities{
+  // quantity we want to generate
+  matrix[N,B] p;
+  for(n in 1:N){
+    for(b in 1:B){
+      p[n,b] = exp(coeff_wt[b]*weight[n]+coeff_tl[b]*tarsus[n]+coeff_wl[b]*wing[n]+beta0[b])/(1-exp(coeff_wt[b]*weight[n]+coeff_tl[b]*tarsus[n]+coeff_wl[b]*wing[n]+beta0[b]));
+    }
+  }
+}
   
 
 
