@@ -79,12 +79,14 @@ both <- beta0_br |beta_wt_br | beta_tl_br | beta_wl_br
 
 none / bite / run / both
 
-#bf.10 <- bayes_factor( bridge_sampler(fit.1, silent = TRUE),bridge_sampler(fit.0, silent = TRUE))
-#print(bf.10)
+#bf.2a <- bayes_factor( bridge_sampler(fit, silent = TRUE),bridge_sampler(fit.a, silent = TRUE))
+#print(bf.2a)
 
 pdf(file = './plots/m2_param_plots.pdf')
 p_beta_wt
 p_beta_tl
 p_beta_wl
 dev.off()
+
+pairs(x=fit, pars=c("coeff_wt","coeff_tl"))
 
