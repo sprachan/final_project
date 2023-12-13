@@ -59,3 +59,4 @@ ggplot(param_df)+geom_histogram(aes(x = model_p),
                             nrow = 6)+
                  xlim(c(0, 1))+
                  xlab('p values for M0')
+

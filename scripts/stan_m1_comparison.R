@@ -263,8 +263,53 @@ p0_plot
 dev.off()
 
 
+# MSE ----
+# t <- dim(params0$p)[1]
+# N <- dim(params0$p)[2]
+# B <- dim(params0$p)[3]
+behavs <- model_obj[11:15]
+mse <- matrix(NA, nrow = 174, ncol = 5)
+t <- dim(params0$p)[1]
 
+for(n in 1:174){
+  for(b in 1:5){
+    x <- behavs[[b]][n]
+    prop <- params0$p[,b]
+    mse[n, b] <- (1/t)*sum((prop-x)^2)
+  }
+}
 
+pdf(file = './plots/m0_mse.pdf')
+plot(-log10(mse[,1]), 
+     type = 'h',
+     main = 'Bite',
+     xlab = 'Individual',
+     ylab = '-log10(MSE)')
+
+plot(-log10(mse[,2]), 
+     type = 'h',
+     main = 'Run-Hide',
+     xlab = 'Individual',
+     ylab = '-log10(MSE)')
+
+plot(-log10(mse[,3]),
+     type = 'h',
+     main = 'Regurgitate',
+     xlab = 'Individual',
+     ylab = '-log10(MSE)')
+
+plot(-log10(mse[,4]),
+     main = 'Vocalize',
+     type = 'h',
+     xlab = 'Individual',
+     ylab = '-log10(MSE)')
+
+plot(-log10(mse[,5]),
+     main = 'Kick',
+     type = 'h',
+     xlab = 'Individual',
+     ylab = '-log10(MSE)')
+dev.off()
 # GRAVEYARD --------------------------------------------------------------------
 # # PLOTTING  TL ---------------------------------------------------------------
 # 
