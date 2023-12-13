@@ -30,6 +30,20 @@ plot_param <- function(list_in, plot_title = NULL){
   return(p)
 }
 
+plot_histogram <- function(ps, plot_title) {
+  temp <- data.frame(values=ps)
+  p <- ggplot(temp)+
+    geom_histogram(aes(x = values),
+                   bins = 100,
+                   fill = 'lightblue',
+                   color = 'black',
+                   linewidth = 0.25)+
+    geom_vline(xintercept=mean(temp$values))+ # trying to add line at the mean
+    labs(title = plot_title, x = 'Predicted p', y = 'Count')+
+    xlim(c(0,1))
+  return(p)
+}
+
 
 # Load Data --------------------------------------------------------------------
 load('./data/behav_ind_raw.RData')
@@ -39,9 +53,11 @@ behav_ind_raw <- mutate(behav_ind_raw,
 behav_ind_raw <- na.omit(behav_ind_raw)
 attach(behav_ind_raw)
 
+N = length(band)
+
 # STAN Time --------------------------------------------------------------------
 model_obj <- list(B = 5,
-                  N = length(band),
+                  N = N,
                   band = as.numeric(band),
                   tarsus = as.numeric(tarsus_length),
                   weight = as.numeric(weight),
@@ -56,6 +72,13 @@ model_obj <- list(B = 5,
                   vocalize = vocalize,
                   kick=kick
 )
+
+# MODEL 0
+model0 = stan_model('./scripts/m0.stan')
+fit0 = sampling(model0, model_obj, iter = 10000, chains = 1)
+params0 = rstan::extract(fit0)
+
+# MODEL 1
 wt_model = stan_model('./scripts/m1_wt.stan')
 tl_model = stan_model('./scripts/m1_tl.stan')
 wl_model = stan_model('./scripts/m1_wl.stan')
@@ -66,14 +89,62 @@ params_wt = rstan::extract(wt_fit)
 params_tl = rstan::extract(tl_fit)
 params_wl = rstan::extract(wl_fit)
 
-bf.wt_wl <- bayes_factor( bridge_sampler(wt_fit, silent = TRUE),bridge_sampler(wl_fit, silent = TRUE))
+# MODEL 2
+model_obj2 <- model_obj
+model_obj2$B <- 3
+model2 = stan_model('./scripts/m2.stan')
+fit2 = sampling(model2, model_obj2, iter = 10000, chains = 1)
+params2 = rstan::extract(fit2)
+
+# MODEL 3
+model3 = stan_model('./scripts/m3.stan')
+fit3 = sampling(model2, model_obj2, iter = 10000, chains = 1)
+params3 = rstan::extract(fit3)
+
+bf.wt_0 <- bayes_factor(bridge_sampler(wt_fit, silent = TRUE),bridge_sampler(fit0, silent = TRUE))
+print(bf.wt_0) #Bayes factor in favor of x1 over x2: ~18
+
+bf.tl_0 <- bayes_factor(bridge_sampler(tl_fit, silent = TRUE),bridge_sampler(fit0, silent = TRUE))
+print(bf.tl_0) #Bayes factor in favor of x1 over x2: 30,000
+
+bf.wl_0 <- bayes_factor(bridge_sampler(wl_fit, silent = TRUE),bridge_sampler(fit0, silent = TRUE))
+print(bf.wl_0) #Bayes factor in favor of x1 over x2: 5
+
+bf.wt_wl <- bayes_factor(bridge_sampler(wt_fit, silent = TRUE),bridge_sampler(wl_fit, silent = TRUE))
 print(bf.wt_wl) #Bayes factor in favor of x1 over x2: 3.95877
 
-bf.wt_tl <- bayes_factor( bridge_sampler(wt_fit, silent = TRUE),bridge_sampler(tl_fit, silent = TRUE))
-print(bf.wt_tl) #Bayes factor in favor of x1 over x2: 0.00087 (so x2 over x1 is 1149.425)
+bf.wt_tl <- bayes_factor(bridge_sampler(wt_fit, silent = TRUE),bridge_sampler(tl_fit, silent = TRUE))
+print(bf.wt_tl) #Bayes factor in favor of x1 over x2: ~0.0009 (so x2 over x1 is 1149.425)
 
-bf.tl_wl <- bayes_factor( bridge_sampler(tl_fit, silent = TRUE),bridge_sampler(wl_fit, silent = TRUE))
-print(bf.tl_wl) #Bayes factor in favor of x1 over x2: 4714.73077
+bf.tl_wl <- bayes_factor(bridge_sampler(tl_fit, silent = TRUE),bridge_sampler(wl_fit, silent = TRUE))
+print(bf.tl_wl) #Bayes factor in favor of x1 over x2: ~4000
 
-#so tarsus length is the best model
+bf.tl_2 <- bayes_factor(bridge_sampler(tl_fit, silent = TRUE),bridge_sampler(fit2, silent = TRUE))
+print(bf.tl_2)
+
+#TL model
+bite_p <- rep(0,N)
+run_p <- rep(0,N)
+regurg_p <- rep(0,N)
+vocal_p <- rep(0,N)
+kick_p <- rep(0,N)
+
+for (i in 1:N) {
+  bite_p[i] <- mean(params_tl$p[,i,1])
+  run_p[i] <- mean(params_tl$p[,i,2])
+  regurg_p[i] <- mean(params_tl$p[,i,3])
+  vocal_p[i] <- mean(params_tl$p[,i,4])
+  kick_p[i] <- mean(params_tl$p[,i,5])
+}
+
+bite_g <- plot_histogram(bite_p, 'Bite')
+run_g <- plot_histogram(run_p, 'Run & Hide')
+regurg_g <- plot_histogram(regurg_p, 'Regurgitate')
+vocal_g <- plot_histogram(vocal_p, 'Vocalize')
+kick_g <- plot_histogram(kick_p, 'Kick')
+
+bite_g / run_g / regurg_g / vocal_g / kick_g
+
+
+
 
