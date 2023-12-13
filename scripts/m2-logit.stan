@@ -75,29 +75,30 @@ model {
 }
 
 generated quantities {
-  matrix[N, B] p;
+  matrix [N, B] p;
+  
   for(n in 1:N){
-      if(bite[i] == 1){
-        if(run_hide[i] == 1){
+      if (bite[n] == 1){
+        if (run_hide[n] == 1){
           // bite and run
           for(b in 1:B){
-            p[n, b] = coeff_tl_br[b]*tarsus[i] + beta0_br[b];
+            p[n, b] = coeff_tl_br[b]*tarsus[n] + beta0_br[b];
           }
-        }else if(run_hide[i] == 0){
+        }else if (run_hide[n] == 0){
           // bite, don't run
           for(b in 1:B){
-            p[n, b] = coeff_tl_b[b]*tarsus[i] + beta0_b[b];
+            p[n, b] = coeff_tl_b[b]*tarsus[n] + beta0_b[b];
           }
         }
-      }else if(run[i] == 1){
+      }else if (run[n] == 1){
         // don't bite, do run
         for(b in 1:B){
-          p[n, b] = coeff_tl_r[b]*tarsus[i] + beta0_r[b];
-        }
+          p[n, b] = coeff_tl_r[b]*tarsus[n] + beta0_r[b];
+          }
       }else{
         // don't bite, don't run
         for(b in 1:B{
-          p[n, b] = coeff_tl[b]*tarsus[i] + beta0[b];
+          p[n, b] = coeff_tl[b]*tarsus[n] + beta0[b];
         }
         
       }

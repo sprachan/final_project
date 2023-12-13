@@ -2,7 +2,7 @@ library(tidyverse)
 library(rstan)
 library(patchwork)
 
-# Load Data
+# Load Data --------------------------------------------------------------------
 load('./data/behav_ind_raw.RData')
 load('./data/behav_ind_summarized.RData')
 behav_ind_raw <- mutate(behav_ind_raw,
@@ -10,6 +10,7 @@ behav_ind_raw <- mutate(behav_ind_raw,
 behav_ind_raw <- na.omit(behav_ind_raw)
 attach(behav_ind_raw)
 
+# Functions --------------------------------------------------------------------
 make_param_df <- function(list_in){
   temp <- list('regurgitate' = list_in[,1], 
                'vocalize' = list_in[,2],
@@ -33,6 +34,7 @@ plot_param <- function(list_in, plot_title = NULL){
   return(p)
 }
 
+# STAN  --------------------------------------------------------------------
 model_obj <- list(B = 3,
                   N = length(band),
                   band = as.numeric(band),
