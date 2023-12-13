@@ -28,16 +28,16 @@ rownames(phys_cor) <- p
 
 # 5 chains, 50,000 iterations, get an ESS of 5000 for each parameter before running the BF
 
-pdf(file = './plots/corrplot_behavs.pdf')
+#pdf(file = './plots/corrplot_behavs.pdf')
 corrplot(behav_cor, method = 'color',
          outline = TRUE,
          col = COL2('PRGn'),
          tl.col = 'black')
-dev.off()
+#dev.off()
 
-pdf(file = './plots/corrplot_phys.pdf')
+#pdf(file = './plots/corrplot_phys.pdf')
 corrplot(phys_cor, method = 'color',
          outline = TRUE,
          col = COL2('PRGn'),
          tl.col = 'black')
-dev.off()
+#dev.off()
