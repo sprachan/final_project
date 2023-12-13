@@ -558,3 +558,142 @@ bf.3_2 <- bayes_factor(bridge_sampler(fit3, silent = TRUE),
 print(bf.3_2)
 ```
 
+## PLOTS
+We defined some custom plotting functions:
+make_param_df is a helper function that takes lists and makes them into data frames for easier use with ggplot.
+```{r, eval = FALSE}
+make_param_df <- function(list_in, is_probs = FALSE){
+  # requires this order in temp
+  if(is_probs == TRUE){
+    temp <- list('bite' = list_in[1], 
+                 'run_hide' = list_in[2],
+                 'regurgitate' = list_in[3],
+                 'vocalize' = list_in[4],
+                 'kick' = list_in[5])
+    out <- enframe(temp, name = 'behavior', value = 'value') |>
+           unnest_longer(value) |>
+           unnest_longer(value)
+    return(out)
+  }else{
+    temp <- list('bite' = list_in[,1], 
+                 'run_hide' = list_in[,2],
+                 'regurgitate' = list_in[,3],
+                 'vocalize' = list_in[,4],
+                 'kick' = list_in[,5])
+    out <- enframe(temp, name = 'behavior', value = 'value') |>
+      unnest_longer(value)
+    return(out)
+  }
+  
+}
+```
+
+
+plot_param takes the param_df created in the above function and makes histograms of the parameters generated in STAN. 
+```{r, eval = FALSE}
+plot_param <- function(list_in, plot_title = NULL, is_probs = FALSE){
+  temp <- make_param_df(list_in, is_probs = is_probs)
+  if(is_probs == TRUE){
+    p <- ggplot(temp)+
+      geom_histogram(aes(x = value),
+                     bins = 100,
+                     fill = 'lightblue',
+                     color = 'black',
+                     linewidth = 0.25)+
+      facet_wrap(facets = vars(behavior),
+                 nrow = 5,
+                 scales = 'free_y')+
+      labs(title = plot_title, x = 'Predicted p', y = 'Count')+
+      xlim(c(0,1))
+    return(p)
+  }else{
+    p <- ggplot(temp)+
+      geom_histogram(aes(x = value),
+                     bins = 100,
+                     fill = 'lightblue',
+                     color = 'black',
+                     linewidth = 0.25)+
+      geom_vline(aes(xintercept = 0),
+                 linetype = 'dashed',
+                 col = '#dd3040')
+      facet_wrap(facets = vars(behavior),
+                 nrow = 5)+
+      labs(title = plot_title, x = 'Value', y = 'Count')
+    return(p)
+  }
+}
+```
+
+The following two functions calculate the Mean Squared Error, then plot the results. There is some data wrangling to use these functions together.
+
+```{r, eval = FALSE}
+calc_mse <- function(p_list, behavs, num_ind = NULL){
+  if(length(dim(p_list)) == 3){
+    t <- dim(p_list)[1]
+    N <- dim(p_list)[2]
+    B <- dim(p_list)[3]
+    
+    mse <- matrix(NA, nrow = N, ncol = B)
+    for(n in 1:N){
+      for(b in 1:B){
+        x <- behavs[[b]][n]
+        prop <- p_list[,n,b]
+        mse[n, b] <- (1/t)*sum((prop-x)^2)
+      }
+    }
+  }else if(length(dim(p_list)) == 2){
+    t <- dim(p_list)[1]
+    B <- dim(p_list)[2]
+    
+    mse <- matrix(NA, nrow = num_ind, ncol = B)
+    for(n in 1:num_ind){
+      for(b in 1:B){
+        x <- behavs[[b]][n]
+        prop <- p_list[,b]
+        mse[n, b] <- (1/t)*sum((prop-x)^2)
+      }
+    }
+  }
+  mse_df <- data.frame('bite' = mse[,1],
+                       'run_hide' = mse[,2],
+                       'regurgitate' = mse[,3],
+                       'vocalize' = mse[,4],
+                       'kick' = mse[,5]) |>
+            pivot_longer(cols = everything(),
+                         names_to = 'behavior',
+                         values_to = 'mse')
+  return(mse_df)
+}
+
+plot_mse <- function(data_in, plot_title){
+  p <- ggplot(data_in)+geom_segment(aes(x = individual, xend = individual,
+                                        y = 0, yend = transform_mse))+
+       facet_wrap(facets = vars(behavior),
+                  nrow = 5)+
+    labs(title = plot_title, y = '-log10(MSE)', x = 'Individual')
+  return(p)
+}
+
+# Data wrangling
+mse0 <- calc_mse(params0$p, behavs = behavs, num_ind = 174) |>
+        mutate(model = rep('M0', 870),
+               individual = rep(seq(1:174), each = 5),
+               transform_mse = -log10(mse))
+mse1 <- calc_mse(params1$p, behavs = behavs) |>
+        mutate(model = rep('M1', 870),
+               individual = rep(seq(1:174), each = 5),
+               transform_mse = -log10(mse))
+mse_exp <- calc_mse(params_exp$p, behavs = behavs) |>
+           mutate(model = rep('M_exp', 870),
+                  individual = rep(seq(1:174), each = 5),
+                  transform_mse = -log10(mse))
+mse_tl <- calc_mse(params_tl$p, behavs = behavs) |>
+          mutate(model = rep('M_tl', 870),
+                 individual = rep(seq(1:174), each = 5),
+                 transform_mse = -log10(mse))
+
+# generate plots
+plots <- list(M0 = mse0, M1 = mse1, M_exp = mse_exp, M_tl = mse_tl) |>
+  imap(plot_mse)
+```
+We used these functions to generate the attached plots.
