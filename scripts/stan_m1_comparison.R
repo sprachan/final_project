@@ -59,9 +59,23 @@ plot_param <- function(list_in, plot_title = NULL, is_probs = FALSE){
       labs(title = plot_title, x = 'Value', y = 'Count')
     return(p)
   }
-  
 }
 
+summarize_ps <- function(p_list){
+  # tl_p <- params_tl$p 
+  # bite_p <- params_tl$p[,,1] |> apply(MARGIN = 1, mean)
+  bite_p <- p_list[,,1] |> apply(MARGIN = 1, mean)
+  run_p <- p_list[,,2] |> apply(MARGIN = 1, mean)
+  regurgitate_p <- p_list[,,3] |> apply(MARGIN = 1, mean)
+  vocalize_p <- p_list[,,4] |> apply(MARGIN = 1, mean)
+  kick_p <- p_list[,,5] |> apply(MARGIN = 1, mean)
+  out <- list(bite = bite_p, 
+              run = run_p, 
+              regurgitate = regurgitate_p, 
+              vocalize = vocalize_p, 
+              kick = kick_p)
+  return(out)
+}
 
 # Load Data --------------------------------------------------------------------
 load('./data/behav_ind_raw.RData')
@@ -209,85 +223,103 @@ bf.3_2 <- bayes_factor(bridge_sampler(fit3, silent = TRUE),
 print(bf.3_2) #BF in favor of model 3: 46293076263295829147648.00000
 
 
-# PLOTTING  TL -----------------------------------------------------------------
 
-bite_p <- rep(0,N)
-run_p <- rep(0,N)
-regurg_p <- rep(0,N)
-vocal_p <- rep(0,N)
-kick_p <- rep(0,N)
+# PLOTTING Ps ------------------------------------------------------------------
+# have: in each params list, a 3-dimensional p array (5000 x 174 x 5)
+# want: to slice across behaviors to produce 5 5000 x 174 matrices, then 
+#> average across individuals to make 5 5000x1 vectors.
 
-for (i in 1:N) {
-  bite_p[i] <- mean(params_tl$p[,i,1])
-  run_p[i] <- mean(params_tl$p[,i,2])
-  regurg_p[i] <- mean(params_tl$p[,i,3])
-  vocal_p[i] <- mean(params_tl$p[,i,4])
-  kick_p[i] <- mean(params_tl$p[,i,5])
-}
+tl_ps <- summarize_ps(params_tl$p)
+exp_ps <- summarize_ps(params_exp$p)
+m1_ps <- summarize_ps(params1$p)
 
-# requires bite, run_hide, regurgitate, vocalize, kick in that order
-model_p <- list(bite = bite_p, 
-                run_hide = run_p,
-                regurgitate = regurg_p,
-                vocalize = vocal_p,
-                kick = kick_p)
-
-tl_p <- plot_param(model_p, is_probs = TRUE, plot_title = 'TL M1')
-
-bite_g / kick_g / regurg_g / run_g / vocal_g
-
-
-
-# PLOTTING EXP -----------------------------------------------------------------
-bite_p <- rep(0,N)
-run_p <- rep(0,N)
-regurg_p <- rep(0,N)
-vocal_p <- rep(0,N)
-kick_p <- rep(0,N)
-
-for (i in 1:N) {
-  bite_p[i] <- mean(params_exp$p[,i,1])
-  run_p[i] <- mean(params_exp$p[,i,2])
-  regurg_p[i] <- mean(params_exp$p[,i,3])
-  vocal_p[i] <- mean(params_exp$p[,i,4])
-  kick_p[i] <- mean(params_exp$p[,i,5])
-}
-
-# requires bite, run_hide, regurgitate, vocalize, kick in that order
-model_p <- list(bite = bite_p, 
-                run_hide = run_p,
-                regurgitate = regurg_p,
-                vocalize = vocal_p,
-                kick = kick_p)
-
-exp_p <- plot_param(model_p, is_probs = TRUE, plot_title = 'EXP M1')
-
-# PLOTTING M1 -----------------------------------------------------------------
-bite_p <- rep(0,N)
-run_p <- rep(0,N)
-regurg_p <- rep(0,N)
-vocal_p <- rep(0,N)
-kick_p <- rep(0,N)
-
-for (i in 1:N) {
-  bite_p[i] <- mean(params1$p[,i,1])
-  run_p[i] <- mean(params1$p[,i,2])
-  regurg_p[i] <- mean(params1$p[,i,3])
-  vocal_p[i] <- mean(params1$p[,i,4])
-  kick_p[i] <- mean(params1$p[,i,5])
-}
-
-# requires bite, run_hide, regurgitate, vocalize, kick in that order
-model_p <- list(bite = bite_p, 
-                run_hide = run_p,
-                regurgitate = regurg_p,
-                vocalize = vocal_p,
-                kick = kick_p)
-
-m1_p <- plot_param(model_p, is_probs = TRUE, plot_title = 'M1')
+p_plots <- list('Tarsus' = tl_ps, 'Experience' = exp_ps, 'M1' = m1_ps) |>
+           imap(\(x, idx) plot_param(x, plot_title = idx, is_probs = TRUE))
 
 pdf(file = './plots/p_plots.pdf')
-tl_p
-exp_p
-m1_p
+p_plots
 dev.off()
+
+# GRAVEYARD --------------------------------------------------------------------
+# # PLOTTING  TL ---------------------------------------------------------------
+# 
+# bite_p <- rep(0,N)
+# run_p <- rep(0,N)
+# regurg_p <- rep(0,N)
+# vocal_p <- rep(0,N)
+# kick_p <- rep(0,N)
+# 
+# for (i in 1:N) {
+#   bite_p[i] <- mean(params_tl$p[,i,1])
+#   run_p[i] <- mean(params_tl$p[,i,2])
+#   regurg_p[i] <- mean(params_tl$p[,i,3])
+#   vocal_p[i] <- mean(params_tl$p[,i,4])
+#   kick_p[i] <- mean(params_tl$p[,i,5])
+# }
+# 
+# # requires bite, run_hide, regurgitate, vocalize, kick in that order
+# model_p <- list(bite = bite_p, 
+#                 run_hide = run_p,
+#                 regurgitate = regurg_p,
+#                 vocalize = vocal_p,
+#                 kick = kick_p)
+# 
+# tl_p <- plot_param(model_p, is_probs = TRUE, plot_title = 'TL M1')
+# 
+# bite_g / kick_g / regurg_g / run_g / vocal_g
+# 
+# 
+# 
+# # PLOTTING EXP -----------------------------------------------------------------
+# bite_p <- rep(0,N)
+# run_p <- rep(0,N)
+# regurg_p <- rep(0,N)
+# vocal_p <- rep(0,N)
+# kick_p <- rep(0,N)
+# 
+# for (i in 1:N) {
+#   bite_p[i] <- mean(params_exp$p[,i,1])
+#   run_p[i] <- mean(params_exp$p[,i,2])
+#   regurg_p[i] <- mean(params_exp$p[,i,3])
+#   vocal_p[i] <- mean(params_exp$p[,i,4])
+#   kick_p[i] <- mean(params_exp$p[,i,5])
+# }
+# 
+# # requires bite, run_hide, regurgitate, vocalize, kick in that order
+# model_p <- list(bite = bite_p, 
+#                 run_hide = run_p,
+#                 regurgitate = regurg_p,
+#                 vocalize = vocal_p,
+#                 kick = kick_p)
+# 
+# exp_p <- plot_param(model_p, is_probs = TRUE, plot_title = 'EXP M1')
+# 
+# # PLOTTING M1 -----------------------------------------------------------------
+# bite_p <- rep(0,N)
+# run_p <- rep(0,N)
+# regurg_p <- rep(0,N)
+# vocal_p <- rep(0,N)
+# kick_p <- rep(0,N)
+# 
+# for (i in 1:N) {
+#   bite_p[i] <- mean(params1$p[,i,1])
+#   run_p[i] <- mean(params1$p[,i,2])
+#   regurg_p[i] <- mean(params1$p[,i,3])
+#   vocal_p[i] <- mean(params1$p[,i,4])
+#   kick_p[i] <- mean(params1$p[,i,5])
+# }
+# 
+# # requires bite, run_hide, regurgitate, vocalize, kick in that order
+# model_p <- list(bite = bite_p, 
+#                 run_hide = run_p,
+#                 regurgitate = regurg_p,
+#                 vocalize = vocal_p,
+#                 kick = kick_p)
+# 
+# m1_p <- plot_param(model_p, is_probs = TRUE, plot_title = 'M1')
+# 
+# pdf(file = './plots/p_plots.pdf')
+# tl_p
+# exp_p
+# m1_p
+# dev.off()
