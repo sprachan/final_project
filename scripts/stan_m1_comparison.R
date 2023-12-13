@@ -98,9 +98,10 @@ params2 = rstan::extract(fit2)
 
 # MODEL 3
 model3 = stan_model('./scripts/m3.stan')
-fit3 = sampling(model2, model_obj2, iter = 10000, chains = 1)
+fit3 = sampling(model3, model_obj2, iter = 10000, chains = 1)
 params3 = rstan::extract(fit3)
 
+# BAYES FACTORS
 bf.wt_0 <- bayes_factor(bridge_sampler(wt_fit, silent = TRUE),bridge_sampler(fit0, silent = TRUE))
 print(bf.wt_0) #Bayes factor in favor of x1 over x2: ~18
 
@@ -119,10 +120,16 @@ print(bf.wt_tl) #Bayes factor in favor of x1 over x2: ~0.0009 (so x2 over x1 is 
 bf.tl_wl <- bayes_factor(bridge_sampler(tl_fit, silent = TRUE),bridge_sampler(wl_fit, silent = TRUE))
 print(bf.tl_wl) #Bayes factor in favor of x1 over x2: ~4000
 
-bf.tl_2 <- bayes_factor(bridge_sampler(tl_fit, silent = TRUE),bridge_sampler(fit2, silent = TRUE))
-print(bf.tl_2)
+bf.2_tl <- bayes_factor(bridge_sampler(fit2, silent = TRUE),bridge_sampler(tl_fit, silent = TRUE))
+print(bf.2_tl) #BF in favor of model 2: 1821627687958405896515918810588134719952546551556675007110428671458943530999606117169678155513856.00000
 
-#TL model
+bf.3_tl <- bayes_factor(bridge_sampler(fit3, silent = TRUE),bridge_sampler(tl_fit, silent = TRUE))
+print(bf.3_tl) #BF in favor of model 3: 204110383584057263203661603408261102783182484765924533267041282481334922885900119118084970460948299713209226480798662656.00000
+
+bf.3_2 <- bayes_factor(bridge_sampler(fit3, silent = TRUE),bridge_sampler(fit2, silent = TRUE))
+print(bf.3_2) #BF in favor of model 3: 46293076263295829147648.00000
+
+# PLOTTING MODEL 1
 bite_p <- rep(0,N)
 run_p <- rep(0,N)
 regurg_p <- rep(0,N)
@@ -144,6 +151,8 @@ vocal_g <- plot_histogram(vocal_p, 'Vocalize')
 kick_g <- plot_histogram(kick_p, 'Kick')
 
 bite_g / run_g / regurg_g / vocal_g / kick_g
+
+
 
 
 
