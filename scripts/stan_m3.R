@@ -30,6 +30,9 @@ plot_param <- function(list_in, plot_title = NULL){
                    linewidth = 0.25)+
     facet_wrap(facets = vars(behavior),
                nrow = 5)+
+    geom_vline(aes(xintercept = 0),
+               linetype = 'dashed',
+               col = '#dd3040')+
     labs(title = plot_title, x = 'Modelled Value', y=NULL)
   return(p)
 }
@@ -57,27 +60,23 @@ fit = sampling(model, model_obj, iter = 10000, chains = 1)
 params = rstan::extract(fit)
 
 # Plot -------------------------------------------------------------------------
-beta_wt <- plot_param(params$coeff_wt, 'Weight')
 beta_tl <- plot_param(params$coeff_tl, 'Tarsus')
-beta_wl <- plot_param(params$coeff_wl, 'Wing')
 beta0 <- plot_param(params$beta0, 'Intercept')
-beta_wt_r <- plot_param(params$coeff_wt_r, 'Weight: RUN')
+
+
 beta_tl_r <- plot_param(params$coeff_tl_r, 'Tarsus: RUN')
-beta_wl_r <- plot_param(params$coeff_wl_r, 'Wing: RUN')
 beta0_r <- plot_param(params$beta0_r, 'Intercept: RUN')
-beta_wt_b <- plot_param(params$coeff_wt_b, 'Weight: BITE')
+
 beta_tl_b <- plot_param(params$coeff_tl_b, 'Tarsus: BITE')
-beta_wl_b <- plot_param(params$coeff_wl_b, 'Wing: BITE')
 beta0_b <- plot_param(params$beta0_b, 'Intercept: BITE')
-beta_wt_br <- plot_param(params$coeff_wt_br, 'Weight: BITE & RUN')
+
 beta_tl_br <- plot_param(params$coeff_tl_br, 'Tarsus: BITE & RUN')
-beta_wl_br <- plot_param(params$coeff_wl_br, 'Wing: BITE & RUN')
 beta0_br <- plot_param(params$beta0_br, 'Intercept: BITE & RUN')
 
-none <- beta0 | beta_wt | beta_tl | beta_wl
-bite <- beta0_b |beta_wt_b | beta_tl_b | beta_wl_b
-run <- beta0_r |beta_wt_r | beta_tl_r | beta_wl_r
-both <- beta0_br |beta_wt_br | beta_tl_br | beta_wl_br
+none <- beta0 | beta_tl 
+bite <- beta0_b | beta_tl_b
+run <- beta0_r | beta_tl_r 
+both <- beta0_br | beta_tl_br 
 
 none / bite / run / both
 
@@ -85,10 +84,11 @@ none / bite / run / both
 #print(bf.2a)
 
 pdf(file = './plots/m3_param_plots.pdf')
-p_beta_wt
-p_beta_tl
-p_beta_wl
+none 
+bite
+run
+both
 dev.off()
 
-pairs(x=fit, pars=c("coeff_wt","coeff_tl"))
+pairs(x = fit, 'p_v', 'p_k', 'p_r')
 
