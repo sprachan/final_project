@@ -1,0 +1,139 @@
+---
+title: "Bayesian Methods in Ecology: Modeling Storm Petrel Behavior"
+author: "Natasha Haft, Sejal Prachand, and Emily Simons"
+date: "2023-12-14"
+output: html_document
+---
+
+# SETUP
+
+For this project, we import the following packages:
+```{r, message=FALSE, results='hide'}
+library(tidyverse)
+library(rstan)
+library(patchwork)
+library(bridgesampling)
+library(loo)
+```
+
+We begin by inputting our data from a csv.
+```{r, results='hide'}
+# Load Data --------------------------------------------------------------------
+load('./data/behav_ind_raw.RData')
+load('./data/behav_ind_summarized.RData')
+behav_ind_raw <- mutate(behav_ind_raw,
+                        run_hide = run_and_hide + hide)
+behav_ind_raw <- na.omit(behav_ind_raw)
+attach(behav_ind_raw)
+
+N = length(band)
+```
+
+Each row represents one observation/grubbing, where the three physical characteristics (weight, wing length, tarsus length) and five binary behaviors (bite, run, regurgitate, vocalize, kick) are recorded. Experience (the number of times this bird has already been grubbed) is also recorded for each observation.
+
+# STAN
+
+We make a model object to feed into our stan models.
+```{r}
+# STAN Time --------------------------------------------------------------------
+model_obj <- list(B = 5,
+                  N = N,
+                  band = as.numeric(band),
+                  tarsus = as.numeric(tarsus_length),
+                  weight = as.numeric(weight),
+                  wing = as.numeric(wing_length),
+                  sex = as.integer(numeric_sex),
+                  experience = as.integer(years),
+                  exttime = as.numeric(ext_time),
+                  passive = passive,
+                  bite = bite,
+                  run_hide = run_hide,
+                  regurgitate = regurgitate,
+                  vocalize = vocalize,
+                  kick=kick
+)
+```
+
+## Model 0: Modeling behaviors as bernoullis
+For model 1, we are modeling the each binary behavior as a bernoulli, and are modeling proportion p_b for each behavior b according to a Beta(1,1) distribution. The result is a p_b value for each behavior.
+
+```{r}
+## MODEL 0 ------
+model0 = stan_model('./scripts/m0.stan')
+fit0 = sampling(model0, model_obj, iter = 10000, chains = 1)
+params0 = rstan::extract(fit0)
+```
+
+## Model_wt, Model_tl, Model_wl, Model_exp: Single parameter logistic regressions
+Model_wt, Model_tl, Model_wl, Model_exp are all logistic regressions that take one datapoint of the observations into account (weight, tarsus length, wing length, and experience, respectively). Without loss of generality, our output is: beta0[B] and beta_tl[B].
+By using the generated quantities block, we also output 3x3 matrix (iterations x observations x behaviors) for predicted proportion (p_b) values.
+```{r}
+## MODEL 1(s) ----
+exp_model = stan_model('./scripts/m1_experience.stan')
+wt_model = stan_model('./scripts/m1_wt.stan')
+tl_model = stan_model('./scripts/m1_tl.stan')
+wl_model = stan_model('./scripts/m1_wl.stan')
+exp_fit = sampling(exp_model, model_obj, iter = 10000, chains = 1)
+wt_fit = sampling(wt_model, model_obj, iter = 10000, chains = 1)
+tl_fit = sampling(tl_model, model_obj, iter = 10000, chains = 1)
+wl_fit = sampling(wl_model, model_obj, iter = 10000, chains = 1)
+params_exp = rstan::extract(exp_fit)
+params_wt = rstan::extract(wt_fit)
+params_tl = rstan::extract(tl_fit)
+params_wl = rstan::extract(wl_fit)
+```
+
+Using bayes factors, we can conclude that each of these models is significantly better than M0. In particular, there is extremely high support for M_tl and M_exp (with more support for M_exp). We conclude that experience is the most predictive parameter of a bird's behavior.
+
+```{r}
+bf.wt_0 <- bayes_factor(bridge_sampler(wt_fit, silent = TRUE),
+                        bridge_sampler(fit0, silent = TRUE))
+
+print(bf.wt_0)
+
+bf.tl_0 <- bayes_factor(bridge_sampler(tl_fit, silent = TRUE),
+                        bridge_sampler(fit0, silent = TRUE))
+print(bf.tl_0)
+
+bf.wl_0 <- bayes_factor(bridge_sampler(wl_fit, silent = TRUE),
+                        bridge_sampler(fit0, silent = TRUE))
+print(bf.wl_0)
+
+bf.exp_0 <- bayes_factor(bridge_sampler(exp_fit, silent = TRUE),
+                         bridge_sampler(fit0, silent = TRUE))
+print(bf.exp_0)
+
+bf.exp_tl <- bayes_factor(bridge_sampler(exp_fit, silent = TRUE),
+                          bridge_sampler(tl_fit, silent = TRUE))
+print(bf.exp_tl)
+```
+
+## Model 1: Multi-parameter logistic regression
+In Model 1, we combine the best of our models above (M_tl and M_exp) into a multi-parameter logistic regression.
+```{r}
+model1 = stan_model('./scripts/m1_comp.stan')
+fit1 = sampling(model1, model_obj, iter = 10000, chains = 1)
+params1 = rstan::extract(fit1)
+```
+
+Interestingly, this Model 1 was not an improvement on either M_tl or M_exp. Given this information, in future models, we will use tarsus length as our only regression parameter.
+
+```{r}
+bf.exp_1 <- bayes_factor(bridge_sampler(exp_fit, silent = TRUE),
+                         bridge_sampler(fit1, silent = TRUE))
+print(bf.exp_1)
+
+bf.tl_1 <- bayes_factor(bridge_sampler(tl_fit, silent = TRUE),
+                        bridge_sampler(fit1, silent = TRUE))
+print(bf.tl_1)
+```
+
+
+## Model 2: Partitioning by behavior (BITE and RUN/HIDE)
+
+
+
+## Model 3: Partitioning by behavior with single-parameter regression
+
+
+# PLOTTING

@@ -152,19 +152,19 @@ list(fit0, exp_fit, wt_fit, tl_fit, wl_fit, fit1, fit2, fit3) |>
 bf.wt_0 <- bayes_factor(bridge_sampler(wt_fit, silent = TRUE),
                         bridge_sampler(fit0, silent = TRUE))
 
-print(bf.wt_0) #Bayes factor in favor of x1 over x2: ~18
+print(bf.wt_0)
 
 bf.tl_0 <- bayes_factor(bridge_sampler(tl_fit, silent = TRUE),
                         bridge_sampler(fit0, silent = TRUE))
-print(bf.tl_0) #Bayes factor in favor of x1 over x2: 30,000
+print(bf.tl_0)
 
 bf.wl_0 <- bayes_factor(bridge_sampler(wl_fit, silent = TRUE),
                         bridge_sampler(fit0, silent = TRUE))
-print(bf.wl_0) #Bayes factor in favor of x1 over x2: 5
+print(bf.wl_0)
 
 bf.exp_0 <- bayes_factor(bridge_sampler(exp_fit, silent = TRUE),
                          bridge_sampler(fit0, silent = TRUE))
-print(bf.exp_0) #Bayes factor in favor of x1 over x2:60,978
+print(bf.exp_0)
 
 ## Between M1 alternatives comparisons ----
 bf.wt_wl <- bayes_factor(bridge_sampler(wt_fit, silent = TRUE),
