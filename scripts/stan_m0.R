@@ -58,4 +58,4 @@ ggplot(param_df)+geom_histogram(aes(x = model_p),
                  facet_wrap(facets = vars(behavior),
                             nrow = 6)+
                  xlim(c(0, 1))+
-                xlab('p values for M0')
+                 xlab('p values for M0')

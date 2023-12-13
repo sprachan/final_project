@@ -5,48 +5,61 @@ library(bridgesampling)
 library(loo)
 
 # Functions --------------------------------------------------------------------
-make_param_df <- function(list_in){
+make_param_df <- function(list_in, is_probs = FALSE){
   # requires this order in temp
-  temp <- list('bite' = list_in[,1], 
-               'run_hide' = list_in[,2],
-               'regurgitate' = list_in[,3],
-               'vocalize' = list_in[,4],
-               'kick' = list_in[,5])
-  out <- enframe(temp, name = 'behavior', value = 'value') |>
-         unnest_longer(value)
-  return(out)
+  if(is_probs == TRUE){
+    temp <- list('bite' = list_in[1], 
+                 'run_hide' = list_in[2],
+                 'regurgitate' = list_in[3],
+                 'vocalize' = list_in[4],
+                 'kick' = list_in[5])
+    out <- enframe(temp, name = 'behavior', value = 'value') |>
+           unnest_longer(value) |>
+           unnest_longer(value)
+    return(out)
+  }else{
+    temp <- list('bite' = list_in[,1], 
+                 'run_hide' = list_in[,2],
+                 'regurgitate' = list_in[,3],
+                 'vocalize' = list_in[,4],
+                 'kick' = list_in[,5])
+    out <- enframe(temp, name = 'behavior', value = 'value') |>
+      unnest_longer(value)
+    return(out)
+  }
+  
 }
 
-plot_param <- function(list_in, plot_title = NULL){
-  temp <- make_param_df(list_in)
-  p <- ggplot(temp)+
-       geom_histogram(aes(x = value),
-                          bins = 100,
-                          fill = 'lightblue',
-                          color = 'black',
-                          linewidth = 0.25)+
-       facet_wrap(facets = vars(behavior),
-                  nrow = 5)+
-       labs(title = plot_title, x = 'Value', y = 'Count')
-  return(p)
-}
-
-plot_histogram <- function(p_list, plot_title = NULL) {
-  # requires bite, run_hide, regurgitate, vocalize, kick in that order
-  temp <- make_param_df(p_list)
-  p <- ggplot(temp)+
-    geom_histogram(aes(x = value),
-                   bins = 100,
-                   fill = 'lightblue',
-                   color = 'black',
-                   linewidth = 0.25)+
-    geom_vline(xintercept=mean(temp$values),
-               linetype = 'dashed')+ # trying to add line at the mean
-    facet_wrap(facets = vars(behavior),
-               nrow = 5)+
-    labs(title = plot_title, x = 'Predicted p', y = 'Count')+
-    xlim(c(0,1))
-  return(p)
+plot_param <- function(list_in, plot_title = NULL, is_probs = FALSE){
+  temp <- make_param_df(list_in, is_probs = is_probs)
+  if(is_probs == TRUE){
+    p <- ggplot(temp)+
+      geom_histogram(aes(x = value),
+                     bins = 100,
+                     fill = 'lightblue',
+                     color = 'black',
+                     linewidth = 0.25)+
+      facet_wrap(facets = vars(behavior),
+                 nrow = 5)+
+      labs(title = plot_title, x = 'Predicted p', y = 'Count')+
+      xlim(c(0,1))
+    return(p)
+  }else{
+    p <- ggplot(temp)+
+      geom_histogram(aes(x = value),
+                     bins = 100,
+                     fill = 'lightblue',
+                     color = 'black',
+                     linewidth = 0.25)+
+      geom_vline(aes(xintercept = 0),
+                 linetype = 'dashed',
+                 col = '#dd3040')
+      facet_wrap(facets = vars(behavior),
+                 nrow = 5)+
+      labs(title = plot_title, x = 'Value', y = 'Count')
+    return(p)
+  }
+  
 }
 
 
@@ -113,6 +126,12 @@ params2 = rstan::extract(fit2)
 model3 = stan_model('./scripts/m3.stan')
 fit3 = sampling(model3, model_obj2, iter = 10000, chains = 1)
 params3 = rstan::extract(fit3)
+
+
+# CHECK ESS --------------------------------------------------------------------
+list(fit0, exp_fit, wt_fit, tl_fit, wl_fit, fit1, fit2, fit3) |>
+  map(\(x) min(summary(x)$summary[,9]))
+# ESS's are all > 1500, in the 1600-2500 range
 
 # BAYES FACTORS ----------------------------------------------------------------
 ## M1/M0 comparisons ----
@@ -211,17 +230,59 @@ model_p <- list(bite = bite_p,
                 vocalize = vocal_p,
                 kick = kick_p)
 
-p_plots <- imap(model_p, \(x, idx) plot_histogram(p_list = model_p, plot_title = idx))
-# bite_g <- plot_histogram(bite_p, 'Bite')
-# run_g <- plot_histogram(run_p, 'Run & Hide')
-# regurg_g <- plot_histogram(regurg_p, 'Regurgitate')
-# vocal_g <- plot_histogram(vocal_p, 'Vocalize')
-# kick_g <- plot_histogram(kick_p, 'Kick')
-
-#bite_g / run_g / regurg_g / vocal_g / kick_g
+tl_p <- plot_param(model_p, is_probs = TRUE, plot_title = 'TL M1')
 
 
+# PLOTTING EXP -----------------------------------------------------------------
+bite_p <- rep(0,N)
+run_p <- rep(0,N)
+regurg_p <- rep(0,N)
+vocal_p <- rep(0,N)
+kick_p <- rep(0,N)
 
+for (i in 1:N) {
+  bite_p[i] <- mean(params_exp$p[,i,1])
+  run_p[i] <- mean(params_exp$p[,i,2])
+  regurg_p[i] <- mean(params_exp$p[,i,3])
+  vocal_p[i] <- mean(params_exp$p[,i,4])
+  kick_p[i] <- mean(params_exp$p[,i,5])
+}
 
+# requires bite, run_hide, regurgitate, vocalize, kick in that order
+model_p <- list(bite = bite_p, 
+                run_hide = run_p,
+                regurgitate = regurg_p,
+                vocalize = vocal_p,
+                kick = kick_p)
 
+exp_p <- plot_param(model_p, is_probs = TRUE, plot_title = 'EXP M1')
 
+# PLOTTING M1 -----------------------------------------------------------------
+bite_p <- rep(0,N)
+run_p <- rep(0,N)
+regurg_p <- rep(0,N)
+vocal_p <- rep(0,N)
+kick_p <- rep(0,N)
+
+for (i in 1:N) {
+  bite_p[i] <- mean(params1$p[,i,1])
+  run_p[i] <- mean(params1$p[,i,2])
+  regurg_p[i] <- mean(params1$p[,i,3])
+  vocal_p[i] <- mean(params1$p[,i,4])
+  kick_p[i] <- mean(params1$p[,i,5])
+}
+
+# requires bite, run_hide, regurgitate, vocalize, kick in that order
+model_p <- list(bite = bite_p, 
+                run_hide = run_p,
+                regurgitate = regurg_p,
+                vocalize = vocal_p,
+                kick = kick_p)
+
+m1_p <- plot_param(model_p, is_probs = TRUE, plot_title = 'M1')
+
+pdf(file = './plots/p_plots.pdf')
+tl_p
+exp_p
+m1_p
+dev.off()

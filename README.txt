@@ -1,0 +1,1 @@
+This data analysis is for MATH 3606 (Advanced Statistics) Final Project. It is examining petrel behavior in response to study techniques. We build Bayesian models using STAN and R. Primarily, we examine the relationship between behavior and physical characteristics. 
