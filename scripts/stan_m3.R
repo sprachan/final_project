@@ -51,8 +51,8 @@ model_obj <- list(B = 3,
                   vocalize = vocalize,
                   kick=kick
 )
-model = stan_model('./scripts/m2-logit.stan')
-#model.a = stan_model('./scripts/m2a.stan')
+model = stan_model('./scripts/m3.stan')
+
 fit = sampling(model, model_obj, iter = 10000, chains = 1)
 params = rstan::extract(fit)
 
@@ -84,7 +84,7 @@ none / bite / run / both
 #bf.2a <- bayes_factor( bridge_sampler(fit, silent = TRUE),bridge_sampler(fit.a, silent = TRUE))
 #print(bf.2a)
 
-pdf(file = './plots/m2_param_plots.pdf')
+pdf(file = './plots/m3_param_plots.pdf')
 p_beta_wt
 p_beta_tl
 p_beta_wl
