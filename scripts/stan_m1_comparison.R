@@ -116,6 +116,15 @@ calc_mse <- function(p_list, behavs, num_ind = NULL){
   return(mse_df)
 }
 
+plot_mse <- function(data_in, plot_title){
+  p <- ggplot(data_in)+geom_segment(aes(x = individual, xend = individual,
+                                        y = 0, yend = transform_mse))+
+       facet_wrap(facets = vars(behavior),
+                  nrow = 5)+
+    labs(title = plot_title, y = '-log10(MSE)', x = 'Individual')
+  return(p)
+}
+
 # Load Data --------------------------------------------------------------------
 load('./data/behav_ind_raw.RData')
 load('./data/behav_ind_summarized.RData')
@@ -328,18 +337,23 @@ dev.off()
 behavs <- model_obj[11:15]
 mse0 <- calc_mse(params0$p, behavs = behavs, num_ind = 174) |>
         mutate(model = rep('M0', 870),
-               individual = rep(seq(1:174), each = 5))
+               individual = rep(seq(1:174), each = 5),
+               transform_mse = -log10(mse))
 mse1 <- calc_mse(params1$p, behavs = behavs) |>
         mutate(model = rep('M1', 870),
-               individual = rep(seq(1:174), each = 5))
+               individual = rep(seq(1:174), each = 5),
+               transform_mse = -log10(mse))
 mse_exp <- calc_mse(params_exp$p, behavs = behavs) |>
            mutate(model = rep('M_exp', 870),
-                  individual = rep(seq(1:174), each = 5))
+                  individual = rep(seq(1:174), each = 5),
+                  transform_mse = -log10(mse))
 mse_tl <- calc_mse(params_tl$p, behavs = behavs) |>
           mutate(model = rep('M_tl', 870),
-                 individual = rep(seq(1:174), each = 5))
-mse_combined <- rbind(mse0, mse1, mse_exp, mse_tl) |>
-                mutate(transform_mse = -log10(mse))
+                 individual = rep(seq(1:174), each = 5),
+                 transform_mse = -log10(mse))
+
+mse_combined <- rbind(mse0, mse1, mse_exp, mse_tl) 
+
 
 
 mse_plot <- ggplot(mse_combined)+facet_grid(rows = vars(behavior),
@@ -352,8 +366,18 @@ mse_plot <- ggplot(mse_combined)+facet_grid(rows = vars(behavior),
                                  theme_bw()+
                                  labs(x = 'Individual',
                                       y = '-log10(MSE)')
+temps <- list(M0 = mse0, M1 = mse1, M_exp = mse_exp, M_tl = mse_tl) |>
+  imap(plot_mse)
+
+
+
+
 pdf(file = './plots/combined_mse.pdf', width = 12, height = 7)
 mse_plot
+dev.off()
+
+pdf(file = './plots/mse_separate.pdf')
+temps
 dev.off()
 # GRAVEYARD --------------------------------------------------------------------
 # # MSE M1 ----
