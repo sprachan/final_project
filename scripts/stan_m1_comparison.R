@@ -208,11 +208,9 @@ bf.3_2 <- bayes_factor(bridge_sampler(fit3, silent = TRUE),
                        bridge_sampler(fit2, silent = TRUE))
 print(bf.3_2) #BF in favor of model 3: 46293076263295829147648.00000
 
-<<<<<<< HEAD
+
 # PLOTTING  TL -----------------------------------------------------------------
-=======
-# PLOTTING TL
->>>>>>> 7647b72 (nothing really)
+
 bite_p <- rep(0,N)
 run_p <- rep(0,N)
 regurg_p <- rep(0,N)
@@ -234,11 +232,10 @@ model_p <- list(bite = bite_p,
                 vocalize = vocal_p,
                 kick = kick_p)
 
-<<<<<<< HEAD
 tl_p <- plot_param(model_p, is_probs = TRUE, plot_title = 'TL M1')
-=======
+
 bite_g / kick_g / regurg_g / run_g / vocal_g
->>>>>>> 7647b72 (nothing really)
+
 
 
 # PLOTTING EXP -----------------------------------------------------------------
