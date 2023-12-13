@@ -7,9 +7,11 @@ output: html_document
 
 # INTRODUCTION
 
-This project seeks to investigate the relationship between the physical characteristics (wing length, tarsus length, and weight) of storm petrels and which of 5 behaviors (bite, run/hide, regurgite, vocalize, kick) they exhibit when grubbed.
+This project seeks to investigate the relationship between Leach's Storm Petrel's physical characteristics and their responses to being studied.
 
-The data set was collected on Kent Island, New Brunswick, Canada by Bowdoin students (including our very own Sejal Prachand).
+Leach's Storm Petrels are small, long-lived seabirds that nest in underground burrows on offshore islands. Because storm petrels are long-lived and often return to the same site each year to breed, researchers can study the same individual bird over the course of many years of their life. Kent Island (New Brunswick, Canada) is home to a storm petrel colony that has been studied since at least the 1950s. To study the petrels, researchers "grub": they stick their arms into petrel burrows to feel for birds and eggs, then remove birds for measurement (weight, wing chord length, tarsus length) and banding (so that each bird has a metal ring around its leg with a unique sequence of numbers). Finally, birds are placed back in their burrows.
+
+Perhaps obviously, petrels respond to being grubbed. Moreover, their responses are variable. We wanted to investigate underlying patterns in this variability using behavioral data collected during the 2023 field season and demographic data reaching back to the 1950s.
 
 # SETUP
 
