@@ -36,9 +36,9 @@ model_obj <- list(N = length(band),
                   vocalize = vocalize,
                   kick = kick
 )
-model = stan_model('./scripts/m0.stan')
-fit = sampling(model, model_obj, iter = 10000, chains = 1)
-params = rstan::extract(fit)
+model0 = stan_model('./scripts/m0.stan')
+fit0 = sampling(model0, model_obj, iter = 10000, chains = 1)
+params = rstan::extract(fit0)
 
 # visualize results
 p <- params$p
