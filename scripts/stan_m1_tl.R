@@ -56,8 +56,8 @@ model_obj <- list(B = 5,
                   vocalize = vocalize,
                   kick=kick
 )
-tl_model = stan_model('./scripts/m1_tl.stan')
-fit = sampling(tl_model, model_obj, iter = 10000, chains = 1)
+model = stan_model('./scripts/m1_tl.stan')
+fit = sampling(model, model_obj, iter = 10000, chains = 1)
 params = rstan::extract(fit)
 
 # Plot -------------------------------------------------------------------------
