@@ -236,9 +236,34 @@ m1_ps <- summarize_ps(params1$p)
 p_plots <- list('Tarsus' = tl_ps, 'Experience' = exp_ps, 'M1' = m1_ps) |>
            imap(\(x, idx) plot_param(x, plot_title = idx, is_probs = TRUE))
 
+
+p0 <- params0$p
+p0_plot <- list('bite' = p0[,1],
+     'run_hide' = p0[,2],
+     'regurgitate' = p0[,3],
+     'vocalize' = p0[,4],
+      'kick' = p0[,5]) |> 
+  enframe(name = 'behavior', value = 'value') |>
+  unnest_longer(value) |>
+  ggplot()+geom_histogram(aes(x = value),
+                          bins = 100,
+                          fill = 'lightblue',
+                          color = 'black',
+                          linewidth = 0.25)+
+           facet_wrap(facets = vars(behavior), nrow = 5)+
+           xlim(c(0, 1))+
+           labs(x = 'predicted p', y = 'Count', title = 'M0')
+                        
+
+
+
 pdf(file = './plots/p_plots.pdf')
 p_plots
+p0_plot
 dev.off()
+
+
+
 
 # GRAVEYARD --------------------------------------------------------------------
 # # PLOTTING  TL ---------------------------------------------------------------
