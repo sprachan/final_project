@@ -40,7 +40,8 @@ plot_param <- function(list_in, plot_title = NULL, is_probs = FALSE){
                      color = 'black',
                      linewidth = 0.25)+
       facet_wrap(facets = vars(behavior),
-                 nrow = 5)+
+                 nrow = 5,
+                 scales = 'free_y')+
       labs(title = plot_title, x = 'Predicted p', y = 'Count')+
       xlim(c(0,1))
     return(p)
@@ -276,28 +277,51 @@ p_plots <- list('Tarsus' = tl_ps, 'Experience' = exp_ps, 'M1' = m1_ps) |>
 
 
 p0 <- params0$p
-p0_plot <- list('bite' = p0[,1],
-     'run_hide' = p0[,2],
+m0_ps <- list('bite' = p0[,1],
+     'run' = p0[,2],
      'regurgitate' = p0[,3],
      'vocalize' = p0[,4],
-      'kick' = p0[,5]) |> 
-  enframe(name = 'behavior', value = 'value') |>
-  unnest_longer(value) |>
-  ggplot()+geom_histogram(aes(x = value),
-                          bins = 100,
-                          fill = 'lightblue',
-                          color = 'black',
-                          linewidth = 0.25)+
-           facet_wrap(facets = vars(behavior), nrow = 5)+
-           xlim(c(0, 1))+
-           labs(x = 'predicted p', y = 'Count', title = 'M0')
+      'kick' = p0[,5]) 
+
+#|>
+  # ggplot()+geom_histogram(aes(x = value),
+  #                         bins = 100,
+  #                         fill = 'lightblue',
+  #                         color = 'black',
+  #                         linewidth = 0.25)+
+  #          facet_wrap(facets = vars(behavior), nrow = 5, scales = 'free_y')+
+  #          xlim(c(0, 1))+
+  #          labs(x = 'predicted p', y = 'Count', title = 'M0')
                         
+p_combined <- rbind(enframe(tl_ps), enframe(exp_ps), enframe(m1_ps), enframe(m0_ps)) |> 
+  mutate(Model = c(rep('M_tl', 5), rep('M_exp', 5), rep('M1', 5), rep('M0', 5))) |>
+  unnest_longer(value)
 
-
+ggplot(p_combined)+geom_histogram(aes(x = value), 
+                                  bins = 100,
+                                  fill = 'lightblue',
+                                  color = 'black',
+                                  linewidth = 0.1)+
+                  facet_grid(rows = vars(Model), cols = vars(name),
+                             scales = 'free_y')
 
 pdf(file = './plots/p_plots.pdf')
 p_plots
 p0_plot
+dev.off()
+
+pdf(file = './plots/combined_p_plot.pdf', width = 12, height = 9)
+ggplot(p_combined)+geom_histogram(aes(x = value), 
+                                  bins = 100,
+                                  fill = 'lightblue',
+                                  color = 'black',
+                                  linewidth = 0.1)+
+  facet_grid(rows = vars(name), cols = vars(Model),
+             scales = 'free_y',
+             switch = 'y')+
+  xlim(c(0, 1))+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 45))
 dev.off()
 
 # MSEs -------------------------------------------------------------------------
@@ -318,17 +342,17 @@ mse_combined <- rbind(mse0, mse1, mse_exp, mse_tl) |>
                 mutate(transform_mse = -log10(mse))
 
 
-mse_plot <- ggplot(mse_combined)+facet_grid(rows = vars(model),
-                                            cols = vars(behavior))+
+mse_plot <- ggplot(mse_combined)+facet_grid(rows = vars(behavior),
+                                            cols = vars(model))+
                                  geom_segment(aes(x = individual, 
                                                   y = 0,
                                                   xend = individual, 
                                                   yend = transform_mse),
-                                              linewidth = 0.25)+
+                                              linewidth = 0.3)+
                                  theme_bw()+
                                  labs(x = 'Individual',
                                       y = '-log10(MSE)')
-pdf(file = './plots/combined_mse.pdf', width = 11, height = 8.5)
+pdf(file = './plots/combined_mse.pdf', width = 12, height = 7)
 mse_plot
 dev.off()
 # GRAVEYARD --------------------------------------------------------------------
