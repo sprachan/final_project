@@ -72,19 +72,15 @@ rownames(phys_cor) <- p
 
 # 5 chains, 50,000 iterations, get an ESS of 5000 for each parameter before running the BF
 
-#pdf(file = './plots/corrplot_behavs.pdf')
 corrplot(behav_cor, method = 'color',
          outline = TRUE,
          col = COL2('PRGn'),
          tl.col = 'black')
-#dev.off()
 
-#pdf(file = './plots/corrplot_phys.pdf')
 corrplot(phys_cor, method = 'color',
          outline = TRUE,
          col = COL2('PRGn'),
          tl.col = 'black')
-#dev.off()
 
 ```
 
@@ -116,41 +112,8 @@ model_obj <- list(B = 5,
 ## Model 0: Modeling behaviors as bernoullis
 For model 1, we are modeling the each binary behavior as a bernoulli, and are modeling proportion p_b for each behavior b according to a Beta(1,1) distribution. The result is a p_b value for each behavior.
 
-```{stan, output.var="model"}
+![Model 0](stan-screenshots/m0.jpeg)
 
-// The input data is a vector 'y' of length 'N'.
-data {
-  // data size
-  int N;
-  
-  // behavior data
-  int bite[N];
-  int run_hide[N];
-  int regurgitate[N];
-  int vocalize[N];
-  int kick[N];
-  
-}
-
-parameters {
-  real <lower=0, upper=1> p[5];
-}
-
-model {
-  p ~ beta(1, 1);
-  
-  for(i in 1:N){
-      bite[i] ~ bernoulli(p[1]);
-      run_hide[i] ~ bernoulli(p[2]);
-      regurgitate[i] ~ bernoulli(p[3]);
-      vocalize[i] ~ bernoulli(p[4]);
-      kick[i] ~ bernoulli(p[5]);
-    
-  }
-}
-
-
-```
 
 ```{r, message=FALSE, results='hide'}
 ## MODEL 0 ------
@@ -548,7 +511,7 @@ fit3 = rstan::sampling(model3, model_obj2, iter = 10000, chains = 1)
 params3 = rstan::extract(fit3)
 ```
 
-Model 3 is clearly our best model yet. We were happy to see that this combination outperforms each of Model 2 and M_tl individually.
+According to our bayes factors, Model 3 is our best model yet. We were happy to see that this combination outperforms each of Model 2 and M_tl individually.
 
 ```{r}
 bf.3_tl <- bayes_factor(bridge_sampler(fit3, silent = TRUE),
