@@ -57,6 +57,41 @@ model_obj <- list(B = 5,
 ## Model 0: Modeling behaviors as bernoullis
 For model 1, we are modeling the each binary behavior as a bernoulli, and are modeling proportion p_b for each behavior b according to a Beta(1,1) distribution. The result is a p_b value for each behavior.
 
+```{stan, message=FALSE, results='hide'}
+// The input data is a vector 'y' of length 'N'.
+data {
+  // data size
+  int N;
+  
+  // behavior data
+  int bite[N];
+  int run_hide[N];
+  int regurgitate[N];
+  int vocalize[N];
+  int kick[N];
+  
+}
+
+parameters {
+  real <lower=0, upper=1> p[5];
+}
+
+model {
+  p ~ beta(1, 1);
+  
+  for(i in 1:N){
+      bite[i] ~ bernoulli(p[1]);
+      run_hide[i] ~ bernoulli(p[2]);
+      regurgitate[i] ~ bernoulli(p[3]);
+      vocalize[i] ~ bernoulli(p[4]);
+      kick[i] ~ bernoulli(p[5]);
+    
+  }
+}
+
+
+```
+
 ```{r}
 ## MODEL 0 ------
 model0 = stan_model('./scripts/m0.stan')
@@ -64,9 +99,71 @@ fit0 = sampling(model0, model_obj, iter = 10000, chains = 1)
 params0 = rstan::extract(fit0)
 ```
 
-## Model_wt, Model_tl, Model_wl, Model_exp: Single parameter logistic regressions
-Model_wt, Model_tl, Model_wl, Model_exp are all logistic regressions that take one datapoint of the observations into account (weight, tarsus length, wing length, and experience, respectively). Without loss of generality, our output is: beta0[B] and beta_tl[B].
+## Model_wt, Model_tl, Model_wl, Model_exp: One-parameter logistic regressions
+Model_wt, Model_tl, Model_wl, Model_exp are all logistic regressions that take one datapoint of the observations into account (weight, tarsus length, wing length, and experience, respectively). Without loss of generality, our output is: beta0[B] and beta_wt[B].
 By using the generated quantities block, we also output 3x3 matrix (iterations x observations x behaviors) for predicted proportion (p_b) values.
+
+
+As an example, we have included the stan code for M_tl below.
+```{stan, message=FALSE, results='hide'}
+// The input data is a vector 'y' of length 'N'.
+data {
+  // data size
+  int N; // number of rows in the data (number of observations of all the data)
+  int B; //number of behaviors
+  
+  // characteristics
+  int band[N];
+  real tarsus[N];
+  real weight[N];
+  real wing[N];
+  int sex[N];
+  int experience[N];
+  
+  // effects of the observation process (unused)
+  real exttime[N];
+  
+  // behavioral response
+  int passive[N];
+  int bite[N];
+  int run_hide[N];
+  int regurgitate[N];
+  int vocalize[N];
+  int kick[N];
+  
+}
+
+parameters {
+ real coeff_tl[B];
+ real beta0[B];
+}
+
+model {
+  coeff_tl ~ normal(0, 10); 
+  beta0 ~ normal(0, 10);
+  // for each individual, model each behavior.
+  for(i in 1:N){
+    bite[i] ~ bernoulli_logit(coeff_tl[1]*tarsus[i]+beta0[1]);
+    run_hide[i] ~ bernoulli_logit(coeff_tl[2]*tarsus[i]+beta0[2]);
+    regurgitate[i] ~ bernoulli_logit(coeff_tl[3]*tarsus[i]+beta0[3]);
+    vocalize[i] ~ bernoulli_logit(coeff_tl[4]*tarsus[i]+beta0[4]);
+    kick[i] ~ bernoulli_logit(coeff_tl[5]*tarsus[i]+beta0[5]);
+  }
+}
+
+generated quantities{
+  // proportion values to generate
+  matrix[N,B] p;
+  for(n in 1:N){
+    for(b in 1:B){
+      p[n,b] = exp(coeff_tl[b]*tarsus[n]+beta0[b])/(1+exp(coeff_tl[b]*tarsus[n]+beta0[b]));
+    }
+  }
+}
+  
+
+```
+
 ```{r}
 ## MODEL 1(s) ----
 exp_model = stan_model('./scripts/m1_experience.stan')
@@ -110,6 +207,71 @@ print(bf.exp_tl)
 
 ## Model 1: Multi-parameter logistic regression
 In Model 1, we combine the best of our models above (M_tl and M_exp) into a multi-parameter logistic regression.
+
+```{stan, message=FALSE, results='hide'}
+// The input data is a vector 'y' of length 'N'.
+data {
+  // data size
+  int N; // number of rows in the data (number of observations of all the data)
+  int B; //number of behaviors
+  
+  // individual ID and physical characteristics
+  //int num_observations[N];
+  int band[N];
+  real tarsus[N];
+  real weight[N];
+  real wing[N];
+  int sex[N];
+  int experience[N];
+  
+  // effects of the observation process
+  real exttime[N];
+  
+  // behavioral response
+  int passive[N];
+  int bite[N];
+  int run_hide[N];
+  int regurgitate[N];
+  int vocalize[N];
+  int kick[N];
+  
+}
+
+// The parameters accepted by the model: 
+// beta_wt, beta_TL, beta_WL, beta_0
+parameters {
+ real coeff_tl[B];
+ real coeff_experience[B];
+ real beta0[B];
+}
+
+// The model to be estimated. 
+model {
+  coeff_tl ~ normal(0, 10); 
+  beta0 ~ normal(0, 10);
+  // for each individual, for each behavior, generate a p.
+  for(i in 1:N){
+    bite[i] ~ bernoulli_logit(coeff_tl[1]*tarsus[i]+coeff_experience[1]*experience[i]+beta0[1]);
+    run_hide[i] ~ bernoulli_logit(coeff_tl[2]*tarsus[i]+coeff_experience[2]*experience[i]+beta0[2]);
+    regurgitate[i] ~ bernoulli_logit(coeff_tl[3]*tarsus[i]+coeff_experience[3]*experience[i]+beta0[3]);
+    vocalize[i] ~ bernoulli_logit(coeff_tl[4]*tarsus[i]+coeff_experience[4]*experience[i]+beta0[4]);
+    kick[i] ~ bernoulli_logit(coeff_tl[5]*tarsus[i]+coeff_experience[5]*experience[i]+beta0[5]);
+  }
+}
+
+generated quantities{
+  // quantity we want to generate
+  matrix[N,B] p;
+  for(n in 1:N){
+    for(b in 1:B){
+      p[n,b] = exp(coeff_tl[b]*tarsus[n]+coeff_experience[b]*experience[n]+beta0[b])/(1+exp(coeff_tl[b]*tarsus[n]+coeff_experience[b]*experience[n]+beta0[b]));
+    }
+  }
+}
+  
+
+```
+
 ```{r}
 model1 = stan_model('./scripts/m1_comp.stan')
 fit1 = sampling(model1, model_obj, iter = 10000, chains = 1)
@@ -131,9 +293,210 @@ print(bf.tl_1)
 
 ## Model 2: Partitioning by behavior (BITE and RUN/HIDE)
 
+In Model 2, we introduce a new idea: partitioning the data by several behaviors before modelling. The idea behind this is that whether a bird exhibits one behavior may influence its likelihood of exhibiting certain others (conditional probability). The behaviors we chose to partition by (based on our EDA) were bite and run/hide.
+Note that now we are only modelling the remaining three behaviors, so we have to update our model object so that B=3. For each of the four partitions, we output a predicted proportion value for each of the 3 behaviors (for a total of 12 output parameters).
 
+```{stan, message=FALSE, results='hide'}
+// The input data is a vector 'y' of length 'N'.
+data {
+  // data size
+  int N; //number of observations
+  int B; //number of behaviors we are modeling (NB: DIFFERENT FROM M1)
+  
+  // behavioral response
+  int bite[N];
+  int run_hide[N];
+  int regurgitate[N];
+  int vocalize[N];
+  int kick[N];
+  
+}
+
+parameters {
+ real <lower=0, upper=1> p_br[B];
+ real <lower=0, upper=1> p_b[B];
+ real <lower=0, upper=1> p_r[B];
+ real <lower=0, upper=1> p[B];
+}
+
+model {
+  p_br ~ beta(1, 1);
+  p_b ~ beta(1, 1);
+  p_r ~ beta(1, 1);
+  p ~ beta(1, 1);
+  
+  // for each individual, for each behavior.
+  for(i in 1:N){
+    if (bite[i] == 1) {
+      if (run_hide[i] == 1) { // bite and run
+        regurgitate[i] ~ bernoulli(p_br[1]);
+        vocalize[i] ~ bernoulli(p_br[2]);
+        kick[i] ~ bernoulli(p_br[3]);
+      } 
+      else { // bite and NOT run 
+        regurgitate[i] ~ bernoulli(p_b[1]);
+        vocalize[i] ~ bernoulli(p_b[2]);
+        kick[i] ~ bernoulli(p_b[3]);
+      }
+    } else {
+      if (run_hide[i] == 1) { // NOT bite and run
+        regurgitate[i] ~ bernoulli(p_r[1]);
+        vocalize[i] ~ bernoulli(p_r[2]);
+        kick[i] ~ bernoulli(p_r[3]);
+      } else { // NOT bite and NOT run 
+        regurgitate[i] ~ bernoulli(p[1]);
+        vocalize[i] ~ bernoulli(p[2]);
+        kick[i] ~ bernoulli(p[3]);
+      }
+    }
+  }
+}
+
+
+```
+
+```{r}
+## MODEL 2 ----
+model_obj2 <- model_obj
+model_obj2$B <- 3
+model2 = stan_model('./scripts/m2.stan')
+fit2 = sampling(model2, model_obj2, iter = 10000, chains = 1)
+params2 = rstan::extract(fit2)
+```
+
+Based on the bayes factors below, Model 2 outperforms M0 enormously. It also outperforms our leading regression model, M_tl. We will combine M2 and M_tl in M3.
+
+```{r}
+bf.2_0 <- bayes_factor(bridge_sampler(fit2, silent = TRUE),
+                       bridge_sampler(fit0, silent = TRUE))
+print(bf.2_0)
+
+bf.2_tl <- bayes_factor(bridge_sampler(fit2, silent = TRUE),
+                        bridge_sampler(tl_fit, silent = TRUE))
+print(bf.2_tl)
+```
 
 ## Model 3: Partitioning by behavior with single-parameter regression
+In Model 3, we combine the partitioning strategy tested in Model 2 with the logistic regression from Model_tl. We partition again by bite and run behaviors, and then do a logistic regression based on the tarsus length to model each of the remaining three behaviors. Like in Model_tl, we use the generated quantities block to record the prediction proportions (p_b) for each behavior, resulting in a matrix with dimensions (iterations x observations x behaviors).
+
+```{stan}
+// The input data is a vector 'y' of length 'N'.
+data {
+  // data size
+  int N; //number of observations
+  int B; //number of behaviors we are modeling (NB: DIFFERENT FROM M1)
+  
+  vector[N] tarsus;
+  real weight[N];
+  real wing[N];
+  int sex[N];
+  int experience[N];
+  
+  // behavioral response
+  int passive[N];
+  int bite[N];
+  int run_hide[N];
+  int regurgitate[N];
+  int vocalize[N];
+  int kick[N];
+  
+}
+
+parameters {
+ // bite and run
+ real coeff_tl_br [B];
+ real beta0_br [B];
+ // only bite
+ real coeff_tl_b [B];
+ real beta0_b [B];
+ // only run
+ real coeff_tl_r [B];
+ real beta0_r [B];
+ // neither bite nor run
+ real coeff_tl [B];
+ real beta0 [B];
+}
+
+model {
+  coeff_tl ~ normal(0, 10); 
+  beta0 ~ normal(0, 10);
+  
+  // partition via bite and run/hide behaviors
+  for(i in 1:N){
+    if (bite[i] == 1) {
+      if (run_hide[i] == 1) { // bite and run
+        regurgitate[i] ~ bernoulli_logit(coeff_tl_br[1]*tarsus[i]+beta0_br[1]);
+        vocalize[i] ~ bernoulli_logit(coeff_tl_br[2]*tarsus[i]+beta0_br[2]);
+        kick[i] ~ bernoulli_logit(coeff_tl_br[3]*tarsus[i]+beta0_br[3]);
+      } 
+      else { // bite and NOT run 
+        regurgitate[i] ~ bernoulli_logit(coeff_tl_b[1]*tarsus[i]+beta0_b[1]);
+        vocalize[i] ~ bernoulli_logit(coeff_tl_b[2]*tarsus[i]+beta0_b[2]);
+        kick[i] ~ bernoulli_logit(coeff_tl_b[3]*tarsus[i]+beta0_b[3]);
+      }
+    } else {
+      if (run_hide[i] == 1) { // NOT bite and run
+        regurgitate[i] ~ bernoulli_logit(coeff_tl_r[1]*tarsus[i]+beta0_r[1]);
+        vocalize[i] ~ bernoulli_logit(coeff_tl_r[2]*tarsus[i]+beta0_r[2]);
+        kick[i] ~ bernoulli_logit(coeff_tl_r[3]*tarsus[i]+beta0_r[3]);
+      } else { // NOT bite and NOT run 
+        regurgitate[i] ~ bernoulli_logit(coeff_tl[1]*tarsus[i]+beta0[1]);
+        vocalize[i] ~ bernoulli_logit(coeff_tl[2]*tarsus[i]+beta0[2]);
+        kick[i] ~ bernoulli_logit(coeff_tl[3]*tarsus[i]+beta0[3]);
+      }
+    }
+  }
+}
+
+generated quantities {
+  real p_r [N];
+  real p_v [N];
+  real p_k [N];
+  
+  for(i in 1:N){
+    if (bite[i] == 1) {
+      if (run_hide[i] == 1) { // bite and run
+        p_r[i] = exp(coeff_tl_br[1]*tarsus[i]+beta0_br[1])/(1+exp(coeff_tl_br[1]*tarsus[i]+beta0_br[1]));
+        p_v[i] = exp(coeff_tl_br[2]*tarsus[i]+beta0_br[2])/(1+exp(coeff_tl_br[2]*tarsus[i]+beta0_br[2]));
+        p_k[i] = exp(coeff_tl_br[3]*tarsus[i]+beta0_br[3])/(1+exp(coeff_tl_br[3]*tarsus[i]+beta0_br[3]));
+      } 
+      else { // bite and NOT run 
+        p_r[i] = exp(coeff_tl_b[1]*tarsus[i]+beta0_b[1])/(1+exp(coeff_tl_b[1]*tarsus[i]+beta0_b[1]));
+        p_v[i] = exp(coeff_tl_b[2]*tarsus[i]+beta0_b[2])/(1+exp(coeff_tl_b[2]*tarsus[i]+beta0_b[2]));
+        p_k[i] = exp(coeff_tl_b[3]*tarsus[i]+beta0_b[3])/(1+exp(coeff_tl_b[3]*tarsus[i]+beta0_b[3]));
+      }
+    } else {
+      if (run_hide[i] == 1) { // NOT bite and run
+        p_r[i] = exp(coeff_tl_r[1]*tarsus[i]+beta0_r[1])/(1+exp(coeff_tl_r[1]*tarsus[i]+beta0_r[1]));
+        p_v[i] = exp(coeff_tl_r[2]*tarsus[i]+beta0_r[2])/(1+exp(coeff_tl_r[2]*tarsus[i]+beta0_r[2]));
+        p_k[i] = exp(coeff_tl_r[3]*tarsus[i]+beta0_r[3])/(1+exp(coeff_tl_r[3]*tarsus[i]+beta0_r[3]));
+      } else { // NOT bite and NOT run 
+        p_r[i] = exp(coeff_tl[1]*tarsus[i]+beta0[1])/(1+exp(coeff_tl[1]*tarsus[i]+beta0[1]));
+        p_v[i] = exp(coeff_tl[2]*tarsus[i]+beta0[2])/(1+exp(coeff_tl[2]*tarsus[i]+beta0[2]));
+        p_k[i] = exp(coeff_tl[3]*tarsus[i]+beta0[3])/(1+exp(coeff_tl[3]*tarsus[i]+beta0[3]));
+      }
+    }
+  }
 
 
-# PLOTTING
+```
+
+```{r}
+## MODEL 3 ----
+model3 = stan_model('./scripts/m3.stan')
+fit3 = sampling(model3, model_obj2, iter = 10000, chains = 1)
+params3 = rstan::extract(fit3)
+```
+
+Model 3 is clearly our best model yet. We were happy to see that this combination outperforms each of Model 2 and M_tl individually.
+
+```{r}
+bf.3_tl <- bayes_factor(bridge_sampler(fit3, silent = TRUE),
+                        bridge_sampler(tl_fit, silent = TRUE))
+print(bf.3_tl)
+
+bf.3_2 <- bayes_factor(bridge_sampler(fit3, silent = TRUE),
+                       bridge_sampler(fit2, silent = TRUE))
+print(bf.3_2)
+```
+
