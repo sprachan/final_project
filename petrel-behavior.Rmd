@@ -123,7 +123,7 @@ params0 = rstan::extract(fit0)
 ```
 
 ## Model_wt, Model_tl, Model_wl, Model_exp: One-parameter logistic regressions
-Model_wt, Model_tl, Model_wl, Model_exp are all logistic regressions that take one datapoint of the observations into account (weight, tarsus length, wing length, and experience, respectively). Without loss of generality, our output is: beta0[B] and beta_wt[B].
+Model_wt, Model_tl, Model_wl, Model_exp are all logistic regressions that take one datapoint of the observations into account (weight, tarsus length, wing length, and experience, respectively). Without loss of generality, our output is: beta_0[B] and beta_wt[B].
 By using the generated quantities block, we also output 3x3 matrix (iterations x observations x behaviors) for predicted proportion (p_b) values.
 
 
@@ -147,7 +147,7 @@ params_tl = rstan::extract(tl_fit)
 params_wl = rstan::extract(wl_fit)
 ```
 
-Using bayes factors, we can conclude that each of these models is significantly better than M0. In particular, there is extremely high support for M_tl and M_exp (with more support for M_exp). We conclude that experience is the most predictive parameter of a bird's behavior.
+Using Bayes' factors, we can conclude that each of these models is significantly better than M0. In particular, there is extremely high support for M_tl and M_exp (with more support for M_exp). We conclude that experience is the most predictive parameter of a bird's behavior.
 
 ```{r, eval=FALSE}
 bf.wt_0 <- bayes_factor(bridge_sampler(wt_fit, silent = TRUE),
@@ -178,7 +178,7 @@ M-TL over M0: 26796.42961 \\
 M-WL over M0: 4.94604 \\
 M-EXP over M0: 61798.37316 \\
 
-Note that M-tl and M-exp in particular are the are very highly supported over M0.
+Note that M_tl and M_exp in particular are the are very highly supported over M0.
 
 ## Model 1: Multi-parameter logistic regression
 In Model 1, we combine the best of our models above (M_tl and M_exp) into a multi-parameter logistic regression.
@@ -207,7 +207,7 @@ Bayes Factors: \\
 M-EXP over M1: 3.92825 \\
 M-TL over M1: 1.76285 \\
 
-This is an interesting result. We wouldn't have expected that the combination/addition of more regressors would be a weaker model. Moving forward, we will use the M-tl model as our most supported regressor model.
+This is an interesting result. We wouldn't have expected that the combination/addition of more regressors would be a weaker model. Moving forward, we will use the M_tl model as our most supported regressor model.
 
 ## Model 2: Partitioning by behavior (BITE and RUN/HIDE)
 
@@ -225,7 +225,7 @@ fit2 = rstan::sampling(model2, model_obj2, iter = 10000, chains = 1)
 params2 = rstan::extract(fit2)
 ```
 
-Based on the bayes factors below, Model 2 outperforms M0 enormously. It also outperforms our leading regression model, M_tl. We will combine M2 and M_tl in M3.
+Based on the Bayes' factors below, Model 2 outperforms M0 enormously. It also outperforms our leading regression model, M_tl. We will combine M2 and M_tl in M3.
 
 ```{r, eval=FALSE}
 bf.2_0 <- bayes_factor(bridge_sampler(fit2, silent = TRUE),
@@ -237,7 +237,7 @@ bf.2_tl <- bayes_factor(bridge_sampler(fit2, silent = TRUE),
 print(bf.2_tl)
 ```
 
-Bayes Factors: \\
+Bayes' Factors: \\
 M2 over M1: 5.46083e+100 \\
 M2 over M-TL: 1.898954e+96 \\
 
@@ -255,7 +255,7 @@ fit3 = rstan::sampling(model3, model_obj2, iter = 10000, chains = 1)
 params3 = rstan::extract(fit3)
 ```
 
-According to our bayes factors, Model 3 is our best model yet. We were happy to see that this combination outperforms each of Model 2 and M_tl individually.
+According to our Bayes factors', Model 3 is our best model yet. We were happy to see that this combination outperforms each of Model 2 and M_tl individually.
 
 ```{r, eval=FALSE}
 bf.3_tl <- bayes_factor(bridge_sampler(fit3, silent = TRUE),
@@ -267,7 +267,7 @@ bf.3_2 <- bayes_factor(bridge_sampler(fit3, silent = TRUE),
 print(bf.3_2)
 ```
 
-Bayes Factors: \\
+Bayes' Factors: \\
 M3 over M-TL: 2.041104e+119 \\
 M3 over M-2: 2.678111e+22 \\
 
