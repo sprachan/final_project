@@ -58,8 +58,8 @@ model_obj <- list(B = 5,
                   kick=kick
 )
 experience_model = stan_model('./scripts/m1_experience.stan')
-fit = sampling(experience_model, model_obj, iter = 10000, chains = 1)
-params_experience = rstan::extract(fit)
+fit_exp = sampling(experience_model, model_obj, iter = 10000, chains = 1)
+params_experience = rstan::extract(fit_exp)
 
 tl_model = stan_model('./scripts/m1_tl.stan')
 fit_tl = sampling(tl_model, model_obj, iter = 10000, chains = 1)
@@ -150,5 +150,6 @@ plot(-log10(mse[,5]),
 dev.off()
 
 # Bayes Factor -----------------------------------------------------------------
-bf_exp_tl <- bayes_factor( bridge_sampler(fit, silent = TRUE),bridge_sampler(fit_tl, silent = TRUE))
-print(bf_exp_tl)
+bf_exp_tl <- bayes_factor(bridge_sampler(fit_exp, silent = TRUE),
+                          bridge_sampler(fit_tl, silent = TRUE))
+print(bf_exp_tl) # BF in favor of experience over tl is about 3
