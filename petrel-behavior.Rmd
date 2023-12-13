@@ -5,7 +5,15 @@ date: "2023-12-14"
 output: html_document
 ---
 
+# INTRODUCTION
+
+This project seeks to investigate the relationship between the physical characteristics (wing length, tarsus length, and weight) of storm petrels and which of 5 behaviors (bite, run/hide, regurgite, vocalize, kick) they exhibit when grubbed.
+
+The data set was collected on Kent Island, New Brunswick, Canada by Bowdoin students (including our very own Sejal Prachand).
+
 # SETUP
+
+Our project can be found on the following GitHub page: https://github.com/sprachan/petrel-behavior
 
 For this project, we import the following packages:
 ```{r, message=FALSE, results='hide'}
@@ -31,9 +39,58 @@ N = length(band)
 
 Each row represents one observation/grubbing, where the three physical characteristics (weight, wing length, tarsus length) and five binary behaviors (bite, run, regurgitate, vocalize, kick) are recorded. Experience (the number of times this bird has already been grubbed) is also recorded for each observation.
 
+# EDA
+
+One of the things that we are interested in is the correlation between behaviors, as this may suggest that conditional probabilities will be useful (e.g. if a bird runs, they are more likely to also regurgitate). The strong, negative correlation between bite and run/hide discovered during this EDA is later used to determine the partitioning/branching of our Model 2.
+
+We are also interested in the correlation between physical characteristics. Since we will eventually regress on these variables, we want to make sure they are not too highly correlated. If they are, then it weakens the power of the regressor somewhat artificially. We observed very weak correlation between physcial characteristics, so we are not particularly concerned by this.
+
+```{r}
+behavs <- cbind(behav_ind_raw$run_hide,
+                behav_ind_raw$regurgitate,
+                behav_ind_raw$vocalize,
+                behav_ind_raw$kick,
+                behav_ind_raw$bite)
+
+phys <- cbind(as.numeric(behav_ind_raw$weight),
+              as.numeric(behav_ind_raw$wing_length),
+              as.numeric(behav_ind_raw$tarsus_length)) |>
+        na.omit()
+
+b <- c('run/hide', 'regurgitate', 'vocalize', 'kick', 'bite')
+p <- c('weight', 'wing length', 'tarsus length')
+
+behav_cor <- cor(behavs)
+colnames(behav_cor) <- b
+rownames(behav_cor) <- b
+
+phys_cor <- cor(phys)
+colnames(phys_cor) <- p
+rownames(phys_cor) <- p
+
+# 5 chains, 50,000 iterations, get an ESS of 5000 for each parameter before running the BF
+
+#pdf(file = './plots/corrplot_behavs.pdf')
+corrplot(behav_cor, method = 'color',
+         outline = TRUE,
+         col = COL2('PRGn'),
+         tl.col = 'black')
+#dev.off()
+
+#pdf(file = './plots/corrplot_phys.pdf')
+corrplot(phys_cor, method = 'color',
+         outline = TRUE,
+         col = COL2('PRGn'),
+         tl.col = 'black')
+#dev.off()
+
+```
+
 # STAN
 
-We make a model object to feed into our stan models.
+Now, we are ready to craft our models in STAN.
+
+First, make a model object to feed into our STAN models.
 ```{r}
 # STAN Time --------------------------------------------------------------------
 model_obj <- list(B = 5,
@@ -57,7 +114,8 @@ model_obj <- list(B = 5,
 ## Model 0: Modeling behaviors as bernoullis
 For model 1, we are modeling the each binary behavior as a bernoulli, and are modeling proportion p_b for each behavior b according to a Beta(1,1) distribution. The result is a p_b value for each behavior.
 
-```{stan, message=FALSE, results='hide'}
+```{stan, output.var="model"}
+
 // The input data is a vector 'y' of length 'N'.
 data {
   // data size
@@ -92,10 +150,10 @@ model {
 
 ```
 
-```{r}
+```{r, message=FALSE, results='hide'}
 ## MODEL 0 ------
 model0 = stan_model('./scripts/m0.stan')
-fit0 = sampling(model0, model_obj, iter = 10000, chains = 1)
+fit0 = rstan::sampling(model0, model_obj, iter = 10000, chains = 1)
 params0 = rstan::extract(fit0)
 ```
 
@@ -105,7 +163,7 @@ By using the generated quantities block, we also output 3x3 matrix (iterations x
 
 
 As an example, we have included the stan code for M_tl below.
-```{stan, message=FALSE, results='hide'}
+```{stan, output.var="model", eval=FALSE}
 // The input data is a vector 'y' of length 'N'.
 data {
   // data size
@@ -170,10 +228,10 @@ exp_model = stan_model('./scripts/m1_experience.stan')
 wt_model = stan_model('./scripts/m1_wt.stan')
 tl_model = stan_model('./scripts/m1_tl.stan')
 wl_model = stan_model('./scripts/m1_wl.stan')
-exp_fit = sampling(exp_model, model_obj, iter = 10000, chains = 1)
-wt_fit = sampling(wt_model, model_obj, iter = 10000, chains = 1)
-tl_fit = sampling(tl_model, model_obj, iter = 10000, chains = 1)
-wl_fit = sampling(wl_model, model_obj, iter = 10000, chains = 1)
+exp_fit = rstan::sampling(exp_model, model_obj, iter = 10000, chains = 1)
+wt_fit = rstan::sampling(wt_model, model_obj, iter = 10000, chains = 1)
+tl_fit = rstan::sampling(tl_model, model_obj, iter = 10000, chains = 1)
+wl_fit = rstan::sampling(wl_model, model_obj, iter = 10000, chains = 1)
 params_exp = rstan::extract(exp_fit)
 params_wt = rstan::extract(wt_fit)
 params_tl = rstan::extract(tl_fit)
@@ -208,7 +266,7 @@ print(bf.exp_tl)
 ## Model 1: Multi-parameter logistic regression
 In Model 1, we combine the best of our models above (M_tl and M_exp) into a multi-parameter logistic regression.
 
-```{stan, message=FALSE, results='hide'}
+```{stan, output.var="model", eval=FALSE}
 // The input data is a vector 'y' of length 'N'.
 data {
   // data size
@@ -274,7 +332,7 @@ generated quantities{
 
 ```{r}
 model1 = stan_model('./scripts/m1_comp.stan')
-fit1 = sampling(model1, model_obj, iter = 10000, chains = 1)
+fit1 = rstan::sampling(model1, model_obj, iter = 10000, chains = 1)
 params1 = rstan::extract(fit1)
 ```
 
@@ -296,7 +354,7 @@ print(bf.tl_1)
 In Model 2, we introduce a new idea: partitioning the data by several behaviors before modelling. The idea behind this is that whether a bird exhibits one behavior may influence its likelihood of exhibiting certain others (conditional probability). The behaviors we chose to partition by (based on our EDA) were bite and run/hide.
 Note that now we are only modelling the remaining three behaviors, so we have to update our model object so that B=3. For each of the four partitions, we output a predicted proportion value for each of the 3 behaviors (for a total of 12 output parameters).
 
-```{stan, message=FALSE, results='hide'}
+```{stan, output.var="model", eval=FALSE}
 // The input data is a vector 'y' of length 'N'.
 data {
   // data size
@@ -360,7 +418,7 @@ model {
 model_obj2 <- model_obj
 model_obj2$B <- 3
 model2 = stan_model('./scripts/m2.stan')
-fit2 = sampling(model2, model_obj2, iter = 10000, chains = 1)
+fit2 = rstan::sampling(model2, model_obj2, iter = 10000, chains = 1)
 params2 = rstan::extract(fit2)
 ```
 
@@ -379,7 +437,7 @@ print(bf.2_tl)
 ## Model 3: Partitioning by behavior with single-parameter regression
 In Model 3, we combine the partitioning strategy tested in Model 2 with the logistic regression from Model_tl. We partition again by bite and run behaviors, and then do a logistic regression based on the tarsus length to model each of the remaining three behaviors. Like in Model_tl, we use the generated quantities block to record the prediction proportions (p_b) for each behavior, resulting in a matrix with dimensions (iterations x observations x behaviors).
 
-```{stan}
+```{stan, output.var="model", eval=FALSE}
 // The input data is a vector 'y' of length 'N'.
 data {
   // data size
@@ -484,7 +542,7 @@ generated quantities {
 ```{r}
 ## MODEL 3 ----
 model3 = stan_model('./scripts/m3.stan')
-fit3 = sampling(model3, model_obj2, iter = 10000, chains = 1)
+fit3 = rstan::sampling(model3, model_obj2, iter = 10000, chains = 1)
 params3 = rstan::extract(fit3)
 ```
 
