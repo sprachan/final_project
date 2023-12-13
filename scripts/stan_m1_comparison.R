@@ -77,6 +77,44 @@ summarize_ps <- function(p_list){
   return(out)
 }
 
+calc_mse <- function(p_list, behavs, num_ind = NULL){
+  if(length(dim(p_list)) == 3){
+    t <- dim(p_list)[1]
+    N <- dim(p_list)[2]
+    B <- dim(p_list)[3]
+    
+    mse <- matrix(NA, nrow = N, ncol = B)
+    for(n in 1:N){
+      for(b in 1:B){
+        x <- behavs[[b]][n]
+        prop <- p_list[,n,b]
+        mse[n, b] <- (1/t)*sum((prop-x)^2)
+      }
+    }
+  }else if(length(dim(p_list)) == 2){
+    t <- dim(p_list)[1]
+    B <- dim(p_list)[2]
+    
+    mse <- matrix(NA, nrow = num_ind, ncol = B)
+    for(n in 1:num_ind){
+      for(b in 1:B){
+        x <- behavs[[b]][n]
+        prop <- p_list[,b]
+        mse[n, b] <- (1/t)*sum((prop-x)^2)
+      }
+    }
+  }
+  mse_df <- data.frame('bite' = mse[,1],
+                       'run_hide' = mse[,2],
+                       'regurgitate' = mse[,3],
+                       'vocalize' = mse[,4],
+                       'kick' = mse[,5]) |>
+            pivot_longer(cols = everything(),
+                         names_to = 'behavior',
+                         values_to = 'mse')
+  return(mse_df)
+}
+
 # Load Data --------------------------------------------------------------------
 load('./data/behav_ind_raw.RData')
 load('./data/behav_ind_summarized.RData')
@@ -262,55 +300,185 @@ p_plots
 p0_plot
 dev.off()
 
-
-# MSE ----
-# t <- dim(params0$p)[1]
-# N <- dim(params0$p)[2]
-# B <- dim(params0$p)[3]
+# MSEs -------------------------------------------------------------------------
 behavs <- model_obj[11:15]
-mse <- matrix(NA, nrow = 174, ncol = 5)
-t <- dim(params0$p)[1]
+mse0 <- calc_mse(params0$p, behavs = behavs, num_ind = 174) |>
+        mutate(model = rep('M0', 870),
+               individual = rep(seq(1:174), each = 5))
+mse1 <- calc_mse(params1$p, behavs = behavs) |>
+        mutate(model = rep('M1', 870),
+               individual = rep(seq(1:174), each = 5))
+mse_exp <- calc_mse(params_exp$p, behavs = behavs) |>
+           mutate(model = rep('M_exp', 870),
+                  individual = rep(seq(1:174), each = 5))
+mse_tl <- calc_mse(params_tl$p, behavs = behavs) |>
+          mutate(model = rep('M_tl', 870),
+                 individual = rep(seq(1:174), each = 5))
+mse_combined <- rbind(mse0, mse1, mse_exp, mse_tl) |>
+                mutate(transform_mse = -log10(mse))
 
-for(n in 1:174){
-  for(b in 1:5){
-    x <- behavs[[b]][n]
-    prop <- params0$p[,b]
-    mse[n, b] <- (1/t)*sum((prop-x)^2)
-  }
-}
 
-pdf(file = './plots/m0_mse.pdf')
-plot(-log10(mse[,1]), 
-     type = 'h',
-     main = 'Bite',
-     xlab = 'Individual',
-     ylab = '-log10(MSE)')
-
-plot(-log10(mse[,2]), 
-     type = 'h',
-     main = 'Run-Hide',
-     xlab = 'Individual',
-     ylab = '-log10(MSE)')
-
-plot(-log10(mse[,3]),
-     type = 'h',
-     main = 'Regurgitate',
-     xlab = 'Individual',
-     ylab = '-log10(MSE)')
-
-plot(-log10(mse[,4]),
-     main = 'Vocalize',
-     type = 'h',
-     xlab = 'Individual',
-     ylab = '-log10(MSE)')
-
-plot(-log10(mse[,5]),
-     main = 'Kick',
-     type = 'h',
-     xlab = 'Individual',
-     ylab = '-log10(MSE)')
+mse_plot <- ggplot(mse_combined)+facet_grid(rows = vars(model),
+                                            cols = vars(behavior))+
+                                 geom_segment(aes(x = individual, 
+                                                  y = 0,
+                                                  xend = individual, 
+                                                  yend = transform_mse),
+                                              linewidth = 0.25)+
+                                 theme_bw()+
+                                 labs(x = 'Individual',
+                                      y = '-log10(MSE)')
+pdf(file = './plots/combined_mse.pdf', width = 11, height = 8.5)
+mse_plot
 dev.off()
 # GRAVEYARD --------------------------------------------------------------------
+# # MSE M1 ----
+# t <- dim(params1$p)[1]
+# N <- dim(params1$p)[2]
+# B <- dim(params1$p)[3]
+# behavs <- model_obj[11:15]
+# mse <- matrix(NA, nrow = N, ncol = B)
+# t <- dim(params1$p)[1]
+# 
+# for(n in 1:N){
+#   for(b in 1:B){
+#     x <- behavs[[b]][n]
+#     prop <- params1$p[,n,b]
+#     mse[n, b] <- (1/t)*sum((prop-x)^2)
+#   }
+# }
+# 
+# pdf(file = './plots/m1/m1_mse.pdf')
+# plot(-log10(mse[,1]), 
+#      type = 'h',
+#      main = 'Bite',
+#      xlab = 'Individual',
+#      ylab = '-log10(MSE)')
+# 
+# plot(-log10(mse[,2]), 
+#      type = 'h',
+#      main = 'Run-Hide',
+#      xlab = 'Individual',
+#      ylab = '-log10(MSE)')
+# 
+# plot(-log10(mse[,3]),
+#      type = 'h',
+#      main = 'Regurgitate',
+#      xlab = 'Individual',
+#      ylab = '-log10(MSE)')
+# 
+# plot(-log10(mse[,4]),
+#      main = 'Vocalize',
+#      type = 'h',
+#      xlab = 'Individual',
+#      ylab = '-log10(MSE)')
+# 
+# plot(-log10(mse[,5]),
+#      main = 'Kick',
+#      type = 'h',
+#      xlab = 'Individual',
+#      ylab = '-log10(MSE)')
+# dev.off()
+# 
+# # MSE M0 ----
+# # MSE ----
+# # t <- dim(params1$p)[1]
+# # N <- dim(params1$p)[2]
+# # B <- dim(params1$p)[3]
+# behavs <- model_obj[11:15]
+# mse <- matrix(NA, nrow = N, ncol = B)
+# t <- dim(params0$p)[1]
+# for(n in 1:N){
+#   for(b in 1:B){
+#     x <- behavs[[b]][n]
+#     prop <- params0$p[,b]
+#     mse[n, b] <- (1/t)*sum((prop-x)^2)
+#   }
+# }
+# 
+# pdf(file = './plots/m0_mse.pdf')
+# plot(-log10(mse[,1]), 
+#      type = 'h',
+#      main = 'Bite',
+#      xlab = 'Individual',
+#      ylab = '-log10(MSE)')
+# 
+# plot(-log10(mse[,2]), 
+#      type = 'h',
+#      main = 'Run-Hide',
+#      xlab = 'Individual',
+#      ylab = '-log10(MSE)')
+# 
+# plot(-log10(mse[,3]),
+#      type = 'h',
+#      main = 'Regurgitate',
+#      xlab = 'Individual',
+#      ylab = '-log10(MSE)')
+# 
+# plot(-log10(mse[,4]),
+#      main = 'Vocalize',
+#      type = 'h',
+#      xlab = 'Individual',
+#      ylab = '-log10(MSE)')
+# 
+# plot(-log10(mse[,5]),
+#      main = 'Kick',
+#      type = 'h',
+#      xlab = 'Individual',
+#      ylab = '-log10(MSE)')
+# dev.off()
+# 
+# 
+# 
+# 
+# 
+# # MSE ----
+# # t <- dim(params0$p)[1]
+# # N <- dim(params0$p)[2]
+# # B <- dim(params0$p)[3]
+# behavs <- model_obj[11:15]
+# mse <- matrix(NA, nrow = 174, ncol = 5)
+# t <- dim(params0$p)[1]
+# 
+# for(n in 1:174){
+#   for(b in 1:5){
+#     x <- behavs[[b]][n]
+#     prop <- params0$p[,b]
+#     mse[n, b] <- (1/t)*sum((prop-x)^2)
+#   }
+# }
+# 
+# pdf(file = './plots/m0_mse.pdf')
+# plot(-log10(mse[,1]), 
+#      type = 'h',
+#      main = 'Bite',
+#      xlab = 'Individual',
+#      ylab = '-log10(MSE)')
+# 
+# plot(-log10(mse[,2]), 
+#      type = 'h',
+#      main = 'Run-Hide',
+#      xlab = 'Individual',
+#      ylab = '-log10(MSE)')
+# 
+# plot(-log10(mse[,3]),
+#      type = 'h',
+#      main = 'Regurgitate',
+#      xlab = 'Individual',
+#      ylab = '-log10(MSE)')
+# 
+# plot(-log10(mse[,4]),
+#      main = 'Vocalize',
+#      type = 'h',
+#      xlab = 'Individual',
+#      ylab = '-log10(MSE)')
+# 
+# plot(-log10(mse[,5]),
+#      main = 'Kick',
+#      type = 'h',
+#      xlab = 'Individual',
+#      ylab = '-log10(MSE)')
+# dev.off()
 # # PLOTTING  TL ---------------------------------------------------------------
 # 
 # bite_p <- rep(0,N)
